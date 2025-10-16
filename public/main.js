@@ -4,7 +4,7 @@
 
 // Biến từ file gốc
 let isEffectRunning = false;
-const GEMINI_API_KEY = "AIzaSyDFNt5sURhni98OORzjiPrQFeSRvPK3Xgs";
+const GEMINI_API_KEY = "AIzaSyAQYySJmfqoky_pWP_Doa9Hxqm3KPcwc1M";
 
 let originalStudentRows = [];
 let duckMode = false;
@@ -117,10 +117,15 @@ document.addEventListener('DOMContentLoaded', function() {
         
         
         // Khởi tạo sự kiện cho nút random
+        // Thay thế phần xử lý audio trong hàm random button
         document.getElementById("randomButton")?.addEventListener("click", function() {
             const backgroundMusic = document.getElementById("backgroundMusic");
             if (backgroundMusic && backgroundMusic.src && backgroundMusic.src !== window.location.href) {
-                backgroundMusic.play();
+                // Thêm xử lý lỗi và user interaction check
+                backgroundMusic.play().catch(error => {
+                    console.log("Không thể phát nhạc nền:", error.message);
+                    // Có thể thêm thông báo cho user nhấp vào để bật âm thanh
+                });
             }
             
             if (duckMode) {
@@ -129,6 +134,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 selectRandomStudentWithEffect();
             }
         });
+
         
         // Khởi tạo sự kiện cho chọn chủ đề
         document.getElementById("themes")?.addEventListener("change", changeTheme);
@@ -1386,26 +1392,30 @@ function initializeChatInterface() {
     }
 }
 
+
 function sendChatMessage() {
     const chatInput = document.getElementById('chatInput');
     const message = chatInput.value.trim();
     if (!message) return;
 
-    // Thêm tin nhắn người dùng vào lịch sử
-    conversationHistory.push({role: "user", content: message});
-
-    // Hiển thị tin nhắn người dùng
-    addMessage(message, 'user-message', true);
-
+    // HIỂN THỊ TIN NHẮN USER NGAY LẬP TỨC - KHÔNG LƯU VÀO HISTORY
+    addMessage(message, 'user-message', false);
+    
     // Xóa nội dung input
     chatInput.value = '';
-
-    // Gọi API với toàn bộ lịch sử
-    callAI(conversationHistory);
-
-    // Lưu lịch sử
+    
+    // Thêm vào history SAU KHI hiển thị
+    conversationHistory.push({role: 'user', content: message});
+    
+    // Lưu history
     saveHistory();
+    
+    // Gọi API
+    callAI(conversationHistory);
 }
+
+
+
 
 function addMessage(text, className, saveToHistory = true) {
     const chatMessages = document.getElementById('chatMessages');
@@ -1413,59 +1423,77 @@ function addMessage(text, className, saveToHistory = true) {
 
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${className}`;
-    const messageId = 'msg-' + Date.now();
+    const messageId = `msg-${Date.now()}`;
     messageDiv.id = messageId;
 
-    const timestamp = new Date().toLocaleTimeString();
-
-    // Nếu là tin nhắn AI, xử lý Markdown
+    // Tạo container cho nội dung tin nhắn
+    const messageContent = document.createElement('div');
+    messageContent.className = 'message-content';
+    
+    // Xử lý nội dung tin nhắn
     if (className === 'ai-message') {
         try {
-            // Xử lý Markdown
+            // Xử lý Markdown nếu có thư viện
             if (typeof marked !== 'undefined') {
                 const urlRegex = /(https?:\/\/[^\s]+)/g;
                 text = text.replace(urlRegex, function(url) {
                     return `[${url}](${url})`;
                 });
-
+                
                 let formattedText = marked.parse(text);
-
                 if (typeof DOMPurify !== 'undefined') {
                     formattedText = DOMPurify.sanitize(formattedText);
                 }
-
                 formattedText = formattedText.replace(/<a/g, '<a target="_blank"');
-                messageDiv.innerHTML = formattedText;
+                messageContent.innerHTML = formattedText;
             } else {
-                messageDiv.textContent = text;
+                messageContent.textContent = text;
             }
         } catch (error) {
-            console.error("Lỗi khi xử lý Markdown:", error);
-            messageDiv.textContent = text;
+            console.error('Lỗi khi xử lý Markdown:', error);
+            messageContent.textContent = text;
         }
     } else {
-        messageDiv.textContent = text;
+        messageContent.textContent = text;
     }
+
+    messageDiv.appendChild(messageContent);
+    
+    // Thêm timestamp
+    const timestamp = document.createElement('div');
+    timestamp.className = 'message-timestamp';
+    timestamp.textContent = new Date().toLocaleTimeString('vi-VN', {
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+    messageDiv.appendChild(timestamp);
 
     chatMessages.appendChild(messageDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 
+    // Lưu vào lịch sử nếu cần (KHÔNG lưu loading message)
     if (saveToHistory && text !== 'Đang suy nghĩ...') {
         if (className === 'ai-message') {
-            conversationHistory.push({role: "assistant", content: text});
+            conversationHistory.push({role: 'assistant', content: text});
         } else if (className === 'user-message') {
-            conversationHistory.push({role: "user", content: text});
+            conversationHistory.push({role: 'user', content: text});
         }
     }
 
     return messageId;
 }
 
+
+
+
 function callAI(history) {
     const recentMessages = history.slice(-10);
     const loadingId = addMessage('Đang suy nghĩ...', 'ai-message', false);
 
-    fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+    // Sử dụng endpoint mới
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+    
+    fetch(apiUrl, {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
@@ -1484,23 +1512,31 @@ function callAI(history) {
         return response.json();
     })
     .then(data => {
+        // Xóa loading message
         const loadingElement = document.getElementById(loadingId);
         if (loadingElement) loadingElement.remove();
 
         if (data.candidates && data.candidates[0] && data.candidates[0].content) {
             const aiMessage = data.candidates[0].content.parts[0].text;
+            // Thêm tin nhắn AI mới
             addMessage(aiMessage, 'ai-message', true);
             saveHistory();
         } else if (data.error) {
-            addMessage(`Lỗi: ${data.error.message}`, 'ai-message', false);
+            addMessage(`Lỗi API: ${data.error.message}`, 'ai-message', false);
+        } else {
+            addMessage('Không nhận được phản hồi từ AI', 'ai-message', false);
         }
     })
     .catch(error => {
+        // Xóa loading message
         const loadingElement = document.getElementById(loadingId);
         if (loadingElement) loadingElement.remove();
+        
+        console.error('AI API Error:', error);
         addMessage(`Lỗi kết nối: ${error.message}`, 'ai-message', false);
     });
 }
+
 
 // ============================================================================
 // TẠO NHÓM
@@ -1674,5 +1710,7 @@ function speak(text) {
         audioElement.play().catch(() => {});
     }
 }
+
+
 
 console.log('Main.js loaded successfully');
