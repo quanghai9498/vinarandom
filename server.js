@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const express = require('express');
 const favicon = require('serve-favicon');
+const mime = require('mime-types');
 
 const app = express();
 const PORT = 3000;
@@ -52,5 +53,19 @@ app.get('/api/listclass/:filename', (req, res) => {
         res.status(404).json({ error: 'Không tìm thấy tệp' });
     }
 });
+
+
+app.use('/Sound', express.static(path.join(__dirname, 'Sound'), {
+    setHeaders: (res, path) => {
+        const mimeType = mime.lookup(path);
+        if (mimeType) {
+            res.setHeader('Content-Type', mimeType);
+        }
+        // Thêm headers cho audio
+        if (path.endsWith('.mp3')) {
+            res.setHeader('Accept-Ranges', 'bytes');
+        }
+    }
+}));
 
 app.listen(PORT, () => console.log(`Server đang chạy tại http://localhost:${PORT}`));
