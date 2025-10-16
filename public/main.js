@@ -633,17 +633,10 @@ function spinWheel() {
     // Thêm fallback và error handling
     const playAudio = async () => {
         try {
-            // Kiểm tra user interaction trước
-            if (!userHasInteracted) {
-                console.log("User chưa tương tác, bỏ qua phát audio");
-                return;
-            }
+            console.log("Đang thử phát audio spin...");
             
             // Preload audio
             audio.preload = 'auto';
-            await audio.load();
-            
-            // Đặt volume
             audio.volume = 0.7;
             
             // Thử phát với promise
@@ -651,21 +644,23 @@ function spinWheel() {
             
             if (playPromise !== undefined) {
                 await playPromise;
+                console.log("Audio spin đã phát thành công");
             }
         } catch (error) {
             console.log("Âm thanh spin không thể phát:", error.message);
             // Tạo audio context để bypass autoplay policy
             try {
                 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const source = audioContext.createBufferSource();
                 
                 fetch("Sound/spin.mp3")
                     .then(response => response.arrayBuffer())
                     .then(data => audioContext.decodeAudioData(data))
                     .then(buffer => {
+                        const source = audioContext.createBufferSource();
                         source.buffer = buffer;
                         source.connect(audioContext.destination);
                         source.start(0);
+                        console.log("Fallback audio đã phát");
                     })
                     .catch(e => console.log("Fallback audio cũng không thành công:", e));
             } catch (fallbackError) {
@@ -674,6 +669,7 @@ function spinWheel() {
         }
     };
 
+    // Luôn cố gắng phát audio
     playAudio();
 
     const totalTime = 10000; // Tổng thời gian quay
