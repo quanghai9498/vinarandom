@@ -6,6 +6,16 @@
 let isEffectRunning = false;
 const GEMINI_API_KEY = "AIzaSyAQYySJmfqoky_pWP_Doa9Hxqm3KPcwc1M";
 
+// THÊM PHẦN NÀY NGAY SAU DÒNG TRÊN
+// User interaction detector cho audio autoplay
+let userHasInteracted = false;
+
+// Lắng nghe interaction đầu tiên
+document.addEventListener('click', () => { userHasInteracted = true; }, { once: true });
+document.addEventListener('keydown', () => { userHasInteracted = true; }, { once: true });
+document.addEventListener('touchstart', () => { userHasInteracted = true; }, { once: true });
+
+
 let originalStudentRows = [];
 let duckMode = false;
 let duckMoving = false;
@@ -289,7 +299,7 @@ function updateTimerDisplay() {
     if (isCountdownMode) {
         displayTime = Math.max(0, countdownTime);
         timerElement.classList.add('countdown');
- 
+        
     } else {
         displayTime = elapsedTime;
         timerElement.classList.remove('countdown', 'warning');
@@ -445,22 +455,38 @@ function initializeTimeSetModal() {
 }
 
 function playWarningSound() {
+    if (!userHasInteracted) {
+        console.log("User chưa tương tác, bỏ qua âm thanh cảnh báo");
+        return;
+    }
+    
     try {
         const audio = new Audio("Sound/bell.mp3");
-        audio.play().catch(() => console.log("Không thể phát âm thanh cảnh báo"));
+        audio.volume = 0.8;
+        audio.play().catch(error => {
+            console.log("Không thể phát âm thanh cảnh báo:", error);
+        });
     } catch (error) {
         console.log("Lỗi phát âm thanh cảnh báo:", error);
     }
 }
 
-// function playAlarmSound() {
-//     try {
-//         const audio = new Audio("Sound/alarm.mp3");
-//         audio.play().catch(() => console.log("Không thể phát âm thanh"));
-//     } catch (error) {
-//         console.log("Lỗi phát âm thanh:", error);
-//     }
-// }
+function playAlarmSound() {
+    if (!userHasInteracted) {
+        console.log("User chưa tương tác, bỏ qua âm thanh alarm");
+        return;
+    }
+    
+    try {
+        const audio = new Audio("Sound/alarm.mp3");
+        audio.volume = 0.9;
+        audio.play().catch(error => {
+            console.log("Không thể phát âm thanh alarm:", error);
+        });
+    } catch (error) {
+        console.log("Lỗi phát âm thanh:", error);
+    }
+}
 
 // ============================================================================
 // DUCK MODE
@@ -607,6 +633,12 @@ function spinWheel() {
     // Thêm fallback và error handling
     const playAudio = async () => {
         try {
+            // Kiểm tra user interaction trước
+            if (!userHasInteracted) {
+                console.log("User chưa tương tác, bỏ qua phát audio");
+                return;
+            }
+            
             // Preload audio
             audio.preload = 'auto';
             await audio.load();
@@ -961,7 +993,8 @@ class RealtimeVisitorCounter {
     }
 }
 
-
+// Sử dụng với API endpoint
+// new RealtimeVisitorCounter('https://yourapi.com/api/counter');
 
 // ============================================================================
 // Reset counter (chỉ admin)
