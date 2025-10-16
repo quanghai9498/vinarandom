@@ -21,15 +21,13 @@ let startTime;
 
 // Biến cho vòng quay (được mở rộng)
 let wheelSectors = [
-    "Nhân đôi điểm", "Chia đôi điểm", "Thêm lượt quay",
-    "Còn 1 điểm cộng", "2 điểm cộng", "1 điểm trừ",
-    "1 điểm cộng", "Quyền đi vệ sinh", "2 điểm cộng"
+    "Nhân đôi", "Chia đôi", "Thêm lượt quay",
+    "Mất lượt", "Phần thưởng"
 ];
 
 let wheelColors = [
     "#FFCCCB", "#FFC107", "#4CAF50",
-    "#2196F3", "#FF6699", "#FF0000",
-    "#8CCCEC", "#7A8B8B", "#8470FF"
+    "#2196F3", "#FF6699"
 ];
 
 // Biến chat từ file gốc
@@ -159,10 +157,124 @@ document.addEventListener('DOMContentLoaded', function() {
         cleanupHistory();
         
         console.log('Khởi tạo thành công!');
+
+        
+        // Tự động full màn hình sau khi load thành công
+        setTimeout(() => {
+            enterFullscreen();
+        }, 1000); // Delay 1 giây để đảm bảo trang đã load hoàn toàn
+
     } catch (error) {
         console.error('Lỗi khởi tạo:', error);
     }
 });
+
+
+// ============================================================================
+// HÀM FULL MÀN HÌNH VỚI XỬ LÝ CROSS BROWSER
+// ============================================================================
+
+function enterFullscreen() {
+    const docElement = document.documentElement;
+    
+    try {
+        if (docElement.requestFullscreen) {
+            docElement.requestFullscreen();
+        } else if (docElement.mozRequestFullScreen) { // Firefox
+            docElement.mozRequestFullScreen();
+        } else if (docElement.webkitRequestFullscreen) { // Chrome, Safari, Opera
+            docElement.webkitRequestFullscreen();
+        } else if (docElement.msRequestFullscreen) { // IE/Edge
+            docElement.msRequestFullscreen();
+        }
+        
+        console.log("Đã yêu cầu full màn hình");
+        
+        // Thêm listener để xử lý khi user thoát fullscreen
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+        document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+        document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+        
+    } catch (error) {
+        console.log("Không thể vào full màn hình:", error.message);
+    }
+}
+
+// Hàm xử lý thay đổi fullscreen
+function handleFullscreenChange() {
+    const isFullscreen = !!(
+        document.fullscreenElement ||
+        document.webkitFullscreenElement ||
+        document.mozFullScreenElement ||
+        document.msFullscreenElement
+    );
+    
+    if (isFullscreen) {
+        console.log("Đã vào chế độ full màn hình");
+        document.body.classList.add('fullscreen-mode');
+    } else {
+        console.log("Đã thoát chế độ full màn hình");
+        document.body.classList.remove('fullscreen-mode');
+    }
+}
+
+// Thêm CSS để tối ưu giao diện fullscreen
+const fullscreenCSS = `
+.fullscreen-mode {
+    overflow: hidden;
+}
+
+.fullscreen-mode .container {
+    padding: 20px;
+    height: 100vh;
+    overflow-y: auto;
+}
+
+/* Ẩn scrollbar khi fullscreen */
+.fullscreen-mode::-webkit-scrollbar {
+    display: none;
+}
+
+.fullscreen-mode {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+`;
+
+// Inject CSS
+const styleSheet = document.createElement("style");
+styleSheet.innerText = fullscreenCSS;
+document.head.appendChild(styleSheet);
+
+// Thêm hotkey để toggle fullscreen (F11 alternative)
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'F11') {
+        e.preventDefault();
+        
+        if (document.fullscreenElement) {
+            exitFullscreen();
+        } else {
+            enterFullscreen();
+        }
+    }
+});
+
+function exitFullscreen() {
+    try {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        } else if (document.mozCancelFullScreen) {
+            document.mozCancelFullScreen();
+        } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) {
+            document.msExitFullscreen();
+        }
+    } catch (error) {
+        console.log("Không thể thoát full màn hình:", error);
+    }
+}
 
 // ============================================================================
 // BỘ ĐẾM THỜI GIAN
@@ -177,21 +289,7 @@ function updateTimerDisplay() {
     if (isCountdownMode) {
         displayTime = Math.max(0, countdownTime);
         timerElement.classList.add('countdown');
-        // timerElement.classList.remove('warning'); // Reset warning khi cập nhật
-        
-        // Cảnh báo khi còn 5 giây cuối
-        // if (displayTime <= 5 && displayTime > 0 && !warningPlayed && isRunning) {
-        //     playWarningSound();
-        //     warningPlayed = true;
-        //     timerElement.classList.add('warning');
-        // }
-        
-        // // Khi hết giờ
-        // if (displayTime === 0 && isRunning) {
-        //     stopTimer();
-        //     playAlarmSound();
-        //     timerElement.classList.remove('warning');
-        // }
+ 
     } else {
         displayTime = elapsedTime;
         timerElement.classList.remove('countdown', 'warning');
@@ -496,30 +594,71 @@ function drawWheel() {
     }
 }
 
+
 function spinWheel() {
     const wheelCanvas = document.getElementById("wheelCanvas");
     if (!wheelCanvas || wheelCanvas.spinning) return;
     
     wheelCanvas.spinning = true;
 
+    // Cải thiện xử lý âm thanh cho website hosting
     const audio = new Audio("Sound/spin.mp3");
-    audio.play();
     
+    // Thêm fallback và error handling
+    const playAudio = async () => {
+        try {
+            // Preload audio
+            audio.preload = 'auto';
+            await audio.load();
+            
+            // Đặt volume
+            audio.volume = 0.7;
+            
+            // Thử phát với promise
+            const playPromise = audio.play();
+            
+            if (playPromise !== undefined) {
+                await playPromise;
+            }
+        } catch (error) {
+            console.log("Âm thanh spin không thể phát:", error.message);
+            // Tạo audio context để bypass autoplay policy
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const source = audioContext.createBufferSource();
+                
+                fetch("Sound/spin.mp3")
+                    .then(response => response.arrayBuffer())
+                    .then(data => audioContext.decodeAudioData(data))
+                    .then(buffer => {
+                        source.buffer = buffer;
+                        source.connect(audioContext.destination);
+                        source.start(0);
+                    })
+                    .catch(e => console.log("Fallback audio cũng không thành công:", e));
+            } catch (fallbackError) {
+                console.log("Audio Context fallback failed:", fallbackError);
+            }
+        }
+    };
+
+    playAudio();
+
     const totalTime = 10000; // Tổng thời gian quay
-    const segmentAngle = 360 / wheelSectors.length; // Góc của mỗi đoạn
+    const segmentAngle = 360 / wheelSectors.length; // Góc của mỗi ô
     
     // Chọn ngẫu nhiên kết quả
     const selectedIndex = Math.floor(Math.random() * wheelSectors.length);
     
     // Tính toán góc quay chính xác
-    const completeRotations = 5; // Số vòng quay đầy đủ
+    const completeRotations = 5; // Số vòng quay đầy
     const targetAngle = 180 - (selectedIndex * segmentAngle + segmentAngle / 2);
     const finalRotation = completeRotations * 360 + targetAngle;
-
+    
     let currentRotation = 0;
     let elapsedTime = 0;
     const intervalTime = 16;
-
+    
     const spinInterval = setInterval(() => {
         elapsedTime += intervalTime;
         const progress = elapsedTime / totalTime;
@@ -527,7 +666,14 @@ function spinWheel() {
         if (progress >= 1) {
             clearInterval(spinInterval);
             wheelCanvas.spinning = false;
-            audio.pause();
+            
+            // Dừng audio an toàn
+            try {
+                audio.pause();
+                audio.currentTime = 0;
+            } catch (e) {
+                console.log("Không thể dừng audio:", e);
+            }
             
             // Đảm bảo vị trí cuối cùng chính xác
             wheelCanvas.style.transform = `rotate(${finalRotation}deg)`;
@@ -536,9 +682,7 @@ function spinWheel() {
             console.log("Kết quả quay vòng:", result);
             
             // Đảm bảo đọc kết quả sau khi quay xong
-            setTimeout(() => {
-                speak(result);
-            }, 0);
+            setTimeout(() => speak(result), 100);
         } else {
             // Hiệu ứng chuyển động mượt mà
             const easing = easeOut(progress);
@@ -547,6 +691,7 @@ function spinWheel() {
         }
     }, intervalTime);
 }
+
 
 function easeOut(t) {
     return 1 - Math.pow(1 - t, 3);
@@ -816,8 +961,7 @@ class RealtimeVisitorCounter {
     }
 }
 
-// Sử dụng với API endpoint
-// new RealtimeVisitorCounter('https://yourapi.com/api/counter');
+
 
 // ============================================================================
 // Reset counter (chỉ admin)
