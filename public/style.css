@@ -322,13 +322,19 @@ footer {
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* Responsive cho fullscreen */
+@media (min-width: 1200px) {
+    .fullscreen-mode .chat-container {
+        width: 450px;
+        height: 650px;
+    }
+}
+
 .chat-controls {
   display: flex;
   gap: 12px;
   align-items: center;
 }
-
-
 
 #clearHistory:hover {
   opacity: 1;
@@ -376,6 +382,22 @@ footer {
   transition: all 0.2s;
 }
 
+#fullscreenBtn {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 5px;
+  opacity: 0.8;
+  transition: all 0.2s;
+}
+
+#fullscreenBtn:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
 .chat-header {
   display: flex;
   justify-content: space-between;
@@ -401,6 +423,8 @@ footer {
   background: rgba(20, 30, 48, 0.7);
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+  overflow-x: hidden !important;
+  word-wrap: break-word !important;
 }
 
 .chat-messages::-webkit-scrollbar {
@@ -459,7 +483,6 @@ footer {
   transform: translateY(-2px);
 }
 
-
 /* Styling cho tin nhắn chat - PHIÊN BẢN MỚI */
 .message {
     margin-bottom: 15px;
@@ -492,6 +515,19 @@ footer {
     margin-left: 10px;
     border-bottom-left-radius: 5px;
     align-items: flex-start;
+    /* THÊM CÁC DÒNG NÀY ĐỂ KHẮC PHỤC TRÀN KHUNG */
+    max-width: 85% !important;
+    word-wrap: break-word !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+    white-space: pre-wrap !important;
+    box-sizing: border-box !important;
+}
+
+/* Khắc phục cho các phần tử con trong ai-message */
+.ai-message * {
+    max-width: 100% !important;
+    box-sizing: border-box !important;
 }
 
 .message-content {
@@ -605,8 +641,6 @@ footer {
   }
 }
 
-
-
 /* Cải thiện bong bóng chat */
 .message {
   margin-bottom: 15px;
@@ -672,7 +706,6 @@ footer {
   }
 }
 
-
 /* Định dạng nội dung phong phú */
 .ai-message p {
   margin: 0 0 12px 0;
@@ -712,20 +745,27 @@ footer {
 }
 
 .ai-message code {
-  background: rgba(0, 0, 0, 0.1);
-  padding: 2px 4px;
-  border-radius: 4px;
-  font-family: monospace;
-  font-size: 0.9em;
+    background: rgba(0, 0, 0, 0.1);
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.9em;
+    /* THÊM ĐỂ KHẮC PHỤC INLINE CODE TRÀN */
+    word-wrap: break-word !important;
+    word-break: break-all !important;
 }
 
 .ai-message pre {
-  background: #2d2d2d;
-  color: #f8f8f2;
-  padding: 12px;
-  border-radius: 8px;
-  overflow-x: auto;
-  margin: 12px 0;
+    background: #2d2d2d;
+    color: #f8f8f2;
+    padding: 12px;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 12px 0;
+    /* THÊM ĐỂ KHẮC PHỤC CODE BLOCK TRÀN */
+    max-width: 100% !important;
+    word-wrap: break-word !important;
+    white-space: pre-wrap !important;
 }
 
 .ai-message a {
@@ -804,7 +844,6 @@ footer {
     opacity: 1;
   }
 }
-
 
 /*Thêm CSS cho chế độ sáng:*/
 .light-theme {
@@ -894,20 +933,11 @@ footer {
   --border-color: rgba(255, 255, 255, 0.05);
 }
 
-/*.option-class{
-  display: flex;
-  flex-wrap: nowrap;
-}
-.class-select, .file-input, a , .option-class{
-    white-space: nowrap; 
-}*/
-
 input[type="file"] {
   width: 0;
   height: 0;
   overflow: hidden;
 }
-
 
 /*import data for spin*/
 .modal {
@@ -984,8 +1014,6 @@ input[type="file"] {
     cursor: pointer;
     font-weight: bold;
 }
-
-
 
 /*CSS của Timer*/
 /* Modal cài đặt thời gian */
@@ -1066,12 +1094,10 @@ input[type="file"] {
     background: #757575;
 }
 
-
 @keyframes warningBlink {
     0%, 50% { opacity: 1; }
     51%, 100% { opacity: 0.5; }
 }
-
 
 /*đếm lượt truy cập*/
 .advanced-counter {
@@ -1145,7 +1171,6 @@ input[type="file"] {
     to { transform: scale(1); opacity: 1; }
 }
 
-
 /*Nút reset truy cập*/
 /* Button Reset cho Visitor Counter */
 #resetBtn {
@@ -1212,7 +1237,6 @@ input[type="file"] {
         margin-top: 10px;
     }
 }
-
 
 /* Custom Confirm Dialog */
 .custom-confirm-overlay {
@@ -1297,3 +1321,210 @@ input[type="file"] {
     from { transform: translateY(-50px) scale(0.8); opacity: 0; }
     to { transform: translateY(0) scale(1); opacity: 1; }
 }
+
+/* ============= CHAT FULLSCREEN - PHIÊN BẢN CUỐI CÙNG ============= */
+
+/* BƯỚC 1: CSS cho chat khi chuyển fullscreen */
+.chat-container.chat-fullscreen {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 99999 !important;
+    
+    /* Layout */
+    display: flex !important;
+    flex-direction: column !important;
+    
+    /* Appearance */
+    background: rgba(30, 42, 56, 0.95) !important;
+    border-radius: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    
+    /* Visibility */
+    visibility: visible !important;
+    opacity: 1 !important;
+    
+    /* Animation */
+    animation: chatFullscreenAppear 0.3s ease-out !important;
+}
+
+/* BƯỚC 2: CSS cho các phần con của chat fullscreen - TĂNG FONT SIZE */
+.chat-container.chat-fullscreen .chat-header {
+    padding: 25px !important;
+    font-size: 24px !important;  /* Tăng từ 18px lên 24px */
+    flex-shrink: 0 !important;
+    background: linear-gradient(135deg, #00bcd4, #0084ff) !important;
+    border-radius: 0 !important;
+    position: relative !important;
+}
+
+.chat-container.chat-fullscreen .chat-messages {
+    flex: 1 !important;
+    height: auto !important;
+    padding: 25px !important;
+    font-size: 20px !important;  /* Tăng từ 16px lên 20px */
+    line-height: 1.7 !important;  /* Tăng line-height */
+    overflow-y: auto !important;
+    background: rgba(20, 30, 48, 0.8) !important;
+    position: relative !important;
+}
+
+.chat-container.chat-fullscreen .chat-input {
+    padding: 25px !important;  /* Tăng padding */
+    position: relative !important;
+    bottom: auto !important;
+    flex-shrink: 0 !important;
+    background: rgba(36, 59, 85, 0.9) !important;
+    border-radius: 0 !important;
+}
+
+.chat-container.chat-fullscreen .message {
+    max-width: 85% !important;  /* Giảm để cân đối với font lớn */
+    margin-bottom: 25px !important;  /* Tăng khoảng cách */
+    padding: 20px 25px !important;  /* Tăng padding */
+    font-size: 18px !important;  /* Tăng từ 15px lên 18px */
+}
+
+/* Tăng font size cho nội dung tin nhắn */
+.chat-container.chat-fullscreen .message h1,
+.chat-container.chat-fullscreen .message h2,
+.chat-container.chat-fullscreen .message h3 {
+    font-size: 22px !important;
+}
+
+.chat-container.chat-fullscreen .message p,
+.chat-container.chat-fullscreen .message li,
+.chat-container.chat-fullscreen .message div {
+    font-size: 18px !important;
+    line-height: 1.6 !important;
+}
+
+.chat-container.chat-fullscreen .message code {
+    font-size: 16px !important;
+}
+
+.chat-container.chat-fullscreen .chat-input input {
+    padding: 18px 25px !important;  /* Tăng padding */
+    font-size: 18px !important;  /* Tăng từ 16px lên 18px */
+}
+
+.chat-container.chat-fullscreen .chat-input button {
+    padding: 18px 30px !important;  /* Tăng padding */
+    font-size: 18px !important;  /* Tăng từ 16px lên 18px */
+}
+
+/* Tăng font size cho typing indicator */
+.chat-container.chat-fullscreen .typing-indicator {
+    font-size: 16px !important;
+    margin-bottom: 20px !important;
+}
+
+
+/* BƯỚC 3: Ẩn các elements khác khi fullscreen */
+body.chat-fullscreen-active > *:not(.chat-container) {
+    display: none !important;
+}
+
+body.chat-fullscreen-active {
+    overflow: hidden !important;
+    background: rgba(20, 30, 48, 0.95) !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* BƯỚC 4: FORCE HIỂN THỊ chat container khi fullscreen */
+body.chat-fullscreen-active .chat-container {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    z-index: 99999 !important;
+}
+
+/* BƯỚC 5: Animation */
+@keyframes chatFullscreenAppear {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* BƯỚC 6: Responsive - TĂNG FONT SIZE CHO MOBILE */
+@media (max-width: 768px) {
+    .chat-container.chat-fullscreen .chat-messages {
+        padding: 20px !important;  /* Tăng từ 15px */
+        font-size: 17px !important;  /* Tăng từ 14px lên 17px */
+    }
+    
+    .chat-container.chat-fullscreen .message {
+        padding: 15px 18px !important;  /* Tăng padding */
+        font-size: 16px !important;  /* Tăng từ 14px lên 16px */
+        max-width: 90% !important;
+        margin-bottom: 20px !important;
+    }
+    
+    .chat-container.chat-fullscreen .chat-header {
+        padding: 20px !important;  /* Tăng từ 15px */
+        font-size: 20px !important;  /* Tăng từ 16px lên 20px */
+    }
+    
+    .chat-container.chat-fullscreen .chat-input {
+        padding: 20px !important;  /* Tăng từ 15px */
+    }
+    
+    .chat-container.chat-fullscreen .chat-input input {
+        padding: 15px 18px !important;  /* Tăng padding */
+        font-size: 16px !important;  /* Tăng từ 14px lên 16px */
+    }
+    
+    .chat-container.chat-fullscreen .chat-input button {
+        padding: 15px 25px !important;  /* Tăng padding */
+        font-size: 16px !important;  /* Tăng từ 14px lên 16px */
+    }
+    
+    /* Responsive cho nội dung tin nhắn mobile */
+    .chat-container.chat-fullscreen .message p,
+    .chat-container.chat-fullscreen .message li,
+    .chat-container.chat-fullscreen .message div {
+        font-size: 16px !important;
+    }
+    
+    .chat-container.chat-fullscreen .message h1,
+    .chat-container.chat-fullscreen .message h2,
+    .chat-container.chat-fullscreen .message h3 {
+        font-size: 18px !important;
+    }
+}
+
+/* ============= KẾT THÚC CHAT FULLSCREEN ============= */
+
+/* DEBUG CSS - XÓA SAU KHI TEST XONG */
+/* Border đỏ để thấy chat */
+.chat-container.chat-fullscreen {
+    border: 3px solid red !important; 
+}
+
+/* Header xanh để thấy */
+.chat-container.chat-fullscreen .chat-header {
+    background: green !important; 
+}
+
+/* Messages xanh dương để thấy */
+/*.chat-container.chat-fullscreen .chat-messages {
+    background: blue !important; 
+}*/
+
+/* Input tím để thấy */
+.chat-container.chat-fullscreen .chat-input {
+    background: purple !important; 
+}
+/* KẾT THÚC DEBUG CSS */
