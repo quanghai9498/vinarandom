@@ -1504,6 +1504,26 @@ function initializeChatInterface() {
         clearHistoryBtn.addEventListener('click', clearChatHistory);
     }
 
+    const fullscreenBtn = document.getElementById("fullscreenBtn");
+    if (fullscreenBtn) {
+        // Xóa event listener cũ (nếu có)
+        fullscreenBtn.removeEventListener("click", toggleFullscreen);
+        
+        // Thêm event listener mới
+        fullscreenBtn.addEventListener("click", function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log("Fullscreen button clicked");
+            
+            toggleFullscreen();
+        });
+        
+        // Cập nhật icon ban đầu
+        updateFullscreenIcon();
+    }
+
+
+
     // Mở/đóng khung chat
     if (toggleChat) {
         toggleChat.addEventListener('click', function() {
@@ -1563,6 +1583,17 @@ function initializeChatInterface() {
             }
         });
     }
+
+    // Thêm phím tắt ESC để thoát chat fullscreen
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const chatContainer = document.querySelector('.chat-container');
+            if (chatContainer && chatContainer.classList.contains('chat-fullscreen')) {
+                toggleFullscreen();
+                updateFullscreenIcon();
+            }
+        }
+    });
 }
 
 
@@ -1856,6 +1887,68 @@ function cleanupHistory() {
         });
     }
 }
+
+
+
+
+// HÀM XỬ LÝ FULLSCREEN CHO KHUNG CHAT - PHIÊN BẢN CUỐI CÙNG
+function toggleFullscreen() {
+    const chatContainer = document.querySelector('.chat-container');
+    const body = document.body;
+    
+    if (!chatContainer) {
+        console.error("Không tìm thấy chat container");
+        return;
+    }
+    
+    // Kiểm tra trạng thái hiện tại
+    const isCurrentlyFullscreen = chatContainer.classList.contains('chat-fullscreen');
+    
+    if (isCurrentlyFullscreen) {
+        // Thoát khỏi chat fullscreen
+        chatContainer.classList.remove('chat-fullscreen');
+        body.classList.remove('chat-fullscreen-active');
+        console.log("Thoát khỏi chat fullscreen");
+    } else {
+        // Vào chat fullscreen
+        chatContainer.classList.add('chat-fullscreen');
+        body.classList.add('chat-fullscreen-active');
+        console.log("Vào chat fullscreen");
+    }
+    
+    // Cập nhật icon
+    setTimeout(() => {
+        updateFullscreenIcon();
+    }, 50);
+    
+    // Cuộn xuống cuối tin nhắn
+    setTimeout(() => {
+        const chatMessages = document.getElementById('chatMessages');
+        if (chatMessages) {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+    }, 200);
+}
+
+function updateFullscreenIcon() {
+    const fullscreenBtn = document.getElementById("fullscreenBtn");
+    if (!fullscreenBtn) return;
+    
+    const chatContainer = document.querySelector('.chat-container');
+    const isChatFullscreen = chatContainer && chatContainer.classList.contains('chat-fullscreen');
+    
+    // Thay đổi icon và tooltip
+    if (isChatFullscreen) {
+        fullscreenBtn.textContent = "⊟"; // Icon thu nhỏ
+        fullscreenBtn.title = "Thu nhỏ chat";
+    } else {
+        fullscreenBtn.textContent = "⛶"; // Icon phóng to  
+        fullscreenBtn.title = "Phóng to chat";
+    }
+}
+
+
+
 
 // ============================================================================
 // HÀM HỖ TRỢ
