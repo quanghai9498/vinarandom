@@ -78,6 +78,22 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById("down")?.addEventListener("click", startCountdown);
         document.getElementById("set")?.addEventListener("click", showTimeSetModal);
         document.getElementById("stop")?.addEventListener("click", stopTimer);
+        document.getElementById("resetTimerBtn")?.addEventListener("click", function() {
+            if (isCountdownMode) {
+                // RESET về mốc đã set
+                // elapsedTime = 0 nghĩa là chưa chạy, countdownTime giữ nguyên
+                // Cập nhật giao diện về mốc countdownTime vừa SET
+                updateTimerDisplay();
+            } else {
+                // RESET về 0 khi đang COUNT
+                elapsedTime = 0;
+                updateTimerDisplay();
+            }
+            // Dừng timer nếu đang chạy
+            clearInterval(timerInterval);
+            isRunning = false;
+        });
+
         
         // Khởi tạo vòng quay (kết hợp cả modal)
         initializeWheel();
