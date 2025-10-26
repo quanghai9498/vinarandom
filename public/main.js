@@ -1625,7 +1625,7 @@ function sendChatMessage() {
     chatInput.value = '';
     
     // Thêm vào history SAU KHI hiển thị
-    conversationHistory.push({role: 'user', content: message});
+    conversationHistory.push({role: 'user', content: message, timestamp: Date.now()});
     
     // Lưu history
     saveHistory();
@@ -1637,7 +1637,8 @@ function sendChatMessage() {
 
 
 
-function addMessage(text, className, saveToHistory = true) {
+// Sửa hàm addMessage
+function addMessage(text, className, saveToHistory = true, ts = null) {
     const chatMessages = document.getElementById('chatMessages');
     if (!chatMessages) return;
 
@@ -1646,62 +1647,32 @@ function addMessage(text, className, saveToHistory = true) {
     const messageId = `msg-${Date.now()}`;
     messageDiv.id = messageId;
 
-    // Tạo container cho nội dung tin nhắn
+    // Nội dung
     const messageContent = document.createElement('div');
     messageContent.className = 'message-content';
-    
-    // Xử lý nội dung tin nhắn
-    if (className === 'ai-message') {
-        try {
-            // Xử lý Markdown nếu có thư viện
-            if (typeof marked !== 'undefined') {
-                const urlRegex = /(https?:\/\/[^\s]+)/g;
-                text = text.replace(urlRegex, function(url) {
-                    return `[${url}](${url})`;
-                });
-                
-                let formattedText = marked.parse(text);
-                if (typeof DOMPurify !== 'undefined') {
-                    formattedText = DOMPurify.sanitize(formattedText);
-                }
-                formattedText = formattedText.replace(/<a/g, '<a target="_blank"');
-                messageContent.innerHTML = formattedText;
-            } else {
-                messageContent.textContent = text;
-            }
-        } catch (error) {
-            console.error('Lỗi khi xử lý Markdown:', error);
-            messageContent.textContent = text;
-        }
-    } else {
-        messageContent.textContent = text;
-    }
-
+    messageContent.textContent = text;
     messageDiv.appendChild(messageContent);
-    
-    // Thêm timestamp
-    const timestamp = document.createElement('div');
-    timestamp.className = 'message-timestamp';
-    timestamp.textContent = new Date().toLocaleTimeString('vi-VN', {
+
+    // Timestamp
+    const timestampDiv = document.createElement('div');
+    timestampDiv.className = 'message-timestamp';
+    let dateObj = ts ? new Date(ts) : new Date();
+    timestampDiv.textContent = dateObj.toLocaleTimeString('vi-VN', {
         hour: '2-digit',
         minute: '2-digit'
     });
-    messageDiv.appendChild(timestamp);
+    messageDiv.appendChild(timestampDiv);
 
     chatMessages.appendChild(messageDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 
-    // Lưu vào lịch sử nếu cần (KHÔNG lưu loading message)
+    // Lưu vào lịch sử nếu cần 
     if (saveToHistory && text !== 'Đang suy nghĩ...') {
-        if (className === 'ai-message') {
-            conversationHistory.push({role: 'assistant', content: text});
-        } else if (className === 'user-message') {
-            conversationHistory.push({role: 'user', content: text});
-        }
+        conversationHistory.push({role: className === 'ai-message' ? 'assistant' : 'user', content: text, timestamp: Date.now()});
     }
-
     return messageId;
 }
+
 
 
 
@@ -1849,7 +1820,7 @@ function initializeChat() {
             if (chatMessages) {
                 chatMessages.innerHTML = '';
                 conversationHistory.forEach(msg => {
-                    addMessage(msg.content, msg.role === 'user' ? 'user-message' : 'ai-message', false);
+                    addMessage(msg.content, msg.role === 'user' ? 'user-message' : 'ai-message', false, msg.timestamp);
                 });
             }
             saveHistory();
@@ -1899,7 +1870,7 @@ function cleanupHistory() {
     if (chatMessages) {
         chatMessages.innerHTML = '';
         conversationHistory.forEach(msg => {
-            addMessage(msg.content, msg.role === 'user' ? 'user-message' : 'ai-message', false);
+            addMessage(msg.content, msg.role === 'user' ? 'user-message' : 'ai-message', false, msg.timestamp);
         });
     }
 }
