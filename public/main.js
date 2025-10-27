@@ -62,75 +62,160 @@ const backgroundImages = {
     Forest: "/bg/Forest.jpg",
 };
 
+
+
+// ============================================================================
+// HÀM XỬ LÍ NHẠC NỀN VÀ HÌNH NỀN
+// ============================================================================
+function applySavedBackground() {
+    const savedBg = localStorage.getItem("userBackground");
+    const savedTheme = localStorage.getItem("selectedTheme");
+    const themeSelect = document.getElementById("themes");
+    if (savedBg) {
+        document.body.style.backgroundImage = `url(${savedBg})`;
+        document.body.style.backgroundSize = 'cover';
+        if (themeSelect) themeSelect.value = "";
+    } else if (savedTheme && backgroundImages[savedTheme]) {
+        document.body.style.backgroundImage = `url('${backgroundImages[savedTheme]}')`;
+        document.body.style.backgroundSize = 'cover';
+        document.body.style.backgroundPosition = 'center center';
+        document.body.style.backgroundRepeat = 'no-repeat';
+        document.body.style.backgroundAttachment = 'fixed';
+        if (themeSelect) themeSelect.value = savedTheme;
+    }
+}
+
+function applySavedMusic() {
+    const savedMusic = localStorage.getItem("userBackgroundMusic");
+    const savedMusicPreset = localStorage.getItem("selectedMusic");
+    const bgMusic = document.getElementById("backgroundMusic");
+    const musicSelect = document.getElementById("musicSelect");
+    if (savedMusic && bgMusic) {
+        bgMusic.src = savedMusic;
+        bgMusic.load();
+        if (musicSelect) musicSelect.value = "";
+    } else if (savedMusicPreset && bgMusic && musicSelect) {
+        musicSelect.value = savedMusicPreset;
+        bgMusic.src = `/Sound/${savedMusicPreset}.mp3`;
+        bgMusic.load();
+    }
+}
+
+
+// ==== Chọn lại theme: xóa custom BG ====
+function changeTheme() {
+    const selectedTheme = this.value;
+    if (selectedTheme && backgroundImages[selectedTheme]) {
+        const imagePath = backgroundImages[selectedTheme];
+        document.body.style.backgroundImage = `url('${imagePath}')`;
+        document.body.style.backgroundSize = 'cover';
+        document.body.style.backgroundPosition = 'center center';
+        document.body.style.backgroundRepeat = 'no-repeat';
+        document.body.style.backgroundAttachment = 'fixed';
+
+        // NHỚ lựa chọn
+        localStorage.setItem("selectedTheme", selectedTheme);
+        localStorage.removeItem("userBackground");
+    } else {
+        // Nếu chuyển sang custom thì xóa lựa chọn preset
+        document.body.style.backgroundImage = '';
+        localStorage.removeItem("selectedTheme");
+    }
+}
+
+// ==== Chọn lại nhạc: xóa custom Music ====
+function changeBackgroundMusic() {
+    const selectedMusic = this.value;
+    const backgroundMusic = document.getElementById("backgroundMusic");
+    if (selectedMusic && backgroundMusic) {
+        backgroundMusic.src = `/Sound/${selectedMusic}.mp3`;
+        backgroundMusic.load();
+        backgroundMusic.play();
+
+        // NHỚ lựa chọn
+        localStorage.setItem("selectedMusic", selectedMusic);
+        localStorage.removeItem("userBackgroundMusic");
+    } else if (backgroundMusic) {
+        backgroundMusic.pause();
+        backgroundMusic.src = '';
+        localStorage.removeItem("selectedMusic");
+    }
+}
+
+
+
+
+
 // ============================================================================
 // KHỞI TẠO CHÍNH
 // ============================================================================
 
+
+// BỐ TRÍ SỰ KIỆN -> custom BG/music luôn ưu tiên, các sự kiện khởi tạo còn lại giữ nguyên
+
 document.addEventListener('DOMContentLoaded', function() {
+    // Ưu tiên custom BG/music (lưu vào localStorage khi upload)
+    applySavedBackground();
+    applySavedMusic();
+
+    // Đảm bảo KHÔNG có addEventListener nào ở ngoài block này!
+    document.getElementById("themes").addEventListener("change", function() {
+        changeTheme.call(this);
+        if (this.value === "") {
+            // Reset input file value trước khi click để có thể import liên tục cùng file
+            const input = document.getElementById("customBgInput");
+            input.value = "";
+            input.click();
+        }
+    });
+    document.getElementById("musicSelect").addEventListener("change", function() {
+        changeBackgroundMusic.call(this);
+        if (this.value === "") {
+            const input = document.getElementById("customMusicInput");
+            input.value = "";
+            input.click();
+        }
+    });
+    document.getElementById("customBgInput").addEventListener("change", uploadCustomBg);
+    document.getElementById("customMusicInput").addEventListener("change", uploadCustomMusic);
+
+
     try {
         console.log('Bắt đầu khởi tạo...');
-        
-        // Khởi tạo bộ đếm thời gian
+
+        // KHỞI TẠO CÁC MODULE KHÁC
         updateTimerDisplay();
-        
-        // Khởi tạo sự kiện cho các nút điều khiển bộ đếm
+
         document.getElementById("start")?.addEventListener("click", startTimer);
         document.getElementById("down")?.addEventListener("click", startCountdown);
         document.getElementById("set")?.addEventListener("click", showTimeSetModal);
         document.getElementById("stop")?.addEventListener("click", stopTimer);
         document.getElementById("resetTimerBtn")?.addEventListener("click", function() {
             if (isCountdownMode) {
-                // RESET về mốc đã set
-                // elapsedTime = 0 nghĩa là chưa chạy, countdownTime giữ nguyên
-                // Cập nhật giao diện về mốc countdownTime vừa SET
                 updateTimerDisplay();
             } else {
-                // RESET về 0 khi đang COUNT
                 elapsedTime = 0;
                 updateTimerDisplay();
             }
-            // Dừng timer nếu đang chạy
             clearInterval(timerInterval);
             isRunning = false;
         });
 
-        
-        // Khởi tạo vòng quay (kết hợp cả modal)
         initializeWheel();
         initializeWheelModal();
-        
-        // Khởi tạo chế độ bí mật
         initializeSecretMode();
-        
-        // Khởi tạo tính năng chọn lớp học
         initializeClassSelection();
-        
-        // Khởi tạo tính năng chat AI
         initializeChatInterface();
-        
-        // Khởi tạo tính năng tạo nhóm
         initializeGroupCreation();
-
-        // Khởi tạo modal cài đặt thời gian
         initializeTimeSetModal();
-
-        // Khởi tạo bộ đếm nâng cao
         new AdvancedVisitorCounter();
-
-        // Show Reset Button
         showResetButton();
 
-
-        // Thêm tính năng phát hiện tab được focus lại
         document.addEventListener('visibilitychange', function() {
             if (!document.hidden && isRunning) {
-                // Khi tab được focus lại, force update ngay lập tức
                 if (isCountdownMode) {
-                    // Trigger update cho countdown
-                    const currentTime = Date.now();
-                    // Logic update sẽ được xử lý trong setInterval
+                    // do nothing, handled in setInterval
                 } else {
-                    // Trigger update cho count up
                     elapsedTime = Math.floor((Date.now() - startTime) / 1000);
                     updateTimerDisplay();
                 }
@@ -138,20 +223,13 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        
-        
-        // Khởi tạo sự kiện cho nút random
-        // Thay thế phần xử lý audio trong hàm random button
         document.getElementById("randomButton")?.addEventListener("click", function() {
             const backgroundMusic = document.getElementById("backgroundMusic");
             if (backgroundMusic && backgroundMusic.src && backgroundMusic.src !== window.location.href) {
-                // Thêm xử lý lỗi và user interaction check
                 backgroundMusic.play().catch(error => {
                     console.log("Không thể phát nhạc nền:", error.message);
-                    // Có thể thêm thông báo cho user nhấp vào để bật âm thanh
                 });
             }
-            
             if (duckMode) {
                 runFunnyDuckAnimation();
             } else {
@@ -159,41 +237,72 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        
-        // Khởi tạo sự kiện cho chọn chủ đề
-        document.getElementById("themes")?.addEventListener("change", changeTheme);
-        
-        // Khởi tạo sự kiện cho chọn nhạc nền
-        document.getElementById("musicSelect")?.addEventListener("change", changeBackgroundMusic);
-        
-        // Áp dụng theme và music mặc định
+        // GÁN LẠI SỰ KIỆN CHO BG, MUSIC, CUSTOM (nên nằm sau applySaved)
+        document.getElementById("themes").addEventListener("change", changeTheme);
+        document.getElementById("musicSelect").addEventListener("change", changeBackgroundMusic);
+        document.getElementById("customBgInput").addEventListener("change", uploadCustomBg);
+        document.getElementById("customMusicInput").addEventListener("change", uploadCustomMusic);
+
+        // KHỞI TẠO THEME/MUSIC ĐÚNG TRẠNG THÁI NGAY SAU ƯU TIÊN CUSTOM
         const themeSelect = document.getElementById("themes");
         const musicSelect = document.getElementById("musicSelect");
-        if (themeSelect) changeTheme.call(themeSelect);
-        if (musicSelect) changeBackgroundMusic.call(musicSelect);
-        
-        // Khởi tạo sự kiện cho tải file danh sách học sinh
+        if (!localStorage.getItem("userBackground") && themeSelect) changeTheme.call(themeSelect);
+        if (!localStorage.getItem("userBackgroundMusic") && musicSelect) changeBackgroundMusic.call(musicSelect);
+
         document.getElementById("fileInput")?.addEventListener("change", handleFileUpload);
-        
-        // Khởi tạo duck mode
         initializeDuckMode();
-        
-        // Khởi tạo chat
         initializeChat();
         cleanupHistory();
-        
-        console.log('Khởi tạo thành công!');
 
-        
-        // Tự động full màn hình sau khi load thành công
-        setTimeout(() => {
-            enterFullscreen();
-        }, 1000); // Delay 1 giây để đảm bảo trang đã load hoàn toàn
+        console.log('Khởi tạo thành công!');
+        setTimeout(() => { enterFullscreen(); }, 1000);
 
     } catch (error) {
         console.error('Lỗi khởi tạo:', error);
     }
 });
+
+
+
+function uploadCustomBg(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+        const dataURL = ev.target.result;
+        document.body.style.backgroundImage = `url(${dataURL})`;
+        document.body.style.backgroundSize = 'cover';
+        localStorage.setItem("userBackground", dataURL);
+        localStorage.removeItem("selectedTheme");
+        document.getElementById("themes").value = "";
+        // Phải reset value input ở đây (SAU khi set) để lần sau khi chọn lại file cũ vẫn được
+        e.target.value = "";
+    }
+    reader.readAsDataURL(file);
+}
+function uploadCustomMusic(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+        const dataURL = ev.target.result;
+        const bgMusic = document.getElementById("backgroundMusic");
+        if (bgMusic) {
+            bgMusic.src = dataURL;
+            bgMusic.load();
+            bgMusic.play().catch(()=>{});
+            localStorage.setItem("userBackgroundMusic", dataURL);
+            localStorage.removeItem("selectedMusic");
+            document.getElementById("musicSelect").value = "";
+        }
+        e.target.value = "";
+    }
+    reader.readAsDataURL(file);
+}
+
+
+
+
 
 
 // ============================================================================
@@ -1461,43 +1570,7 @@ function runFunnyDuckAnimation() {
     nextMove();
 }
 
-// ============================================================================
-// THEME VÀ MUSIC
-// ============================================================================
 
-function changeTheme() {
-    const selectedTheme = this.value;
-    if (backgroundImages[selectedTheme]) {
-        const imagePath = backgroundImages[selectedTheme];
-        
-        const img = new Image();
-        img.src = imagePath;
-        img.onload = function() {
-            document.body.style.backgroundImage = `url('${imagePath}')`;
-            document.body.style.backgroundSize = 'cover';
-            document.body.style.backgroundPosition = 'center center';
-            document.body.style.backgroundRepeat = 'no-repeat';
-            document.body.style.backgroundAttachment = 'fixed';
-        };
-        img.onerror = function() {
-            console.error(`Hình nền không tồn tại: ${imagePath}`);
-            document.body.style.backgroundImage = '';
-        };
-    } else {
-        document.body.style.backgroundImage = '';
-    }
-}
-
-function changeBackgroundMusic() {
-    const selectedMusic = this.value;
-    const backgroundMusic = document.getElementById("backgroundMusic");
-    if (selectedMusic) {
-        backgroundMusic.src = `/Sound/${selectedMusic}.mp3`;
-        backgroundMusic.play();
-    } else {
-        backgroundMusic.pause();
-    }
-}
 
 // ============================================================================
 // CHAT AI
@@ -1637,7 +1710,6 @@ function sendChatMessage() {
 
 
 
-// Sửa hàm addMessage
 
 function addMessage(text, className, saveToHistory = true, ts = null) {
     const chatMessages = document.getElementById('chatMessages');
@@ -1658,7 +1730,14 @@ function addMessage(text, className, saveToHistory = true, ts = null) {
     // Nội dung
     const messageContent = document.createElement('div');
     messageContent.className = 'message-content';
-    messageContent.textContent = text;
+    if (className === 'ai-message') {
+        // Render markdown sang HTML cho AI
+        // Đảm bảo đã include marked.min.js trong HTML (<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>)
+        messageContent.innerHTML = marked.parse(text);
+    } else {
+        // User chỉ hiển thị thuần văn bản (chống XSS)
+        messageContent.textContent = text;
+    }
     messageDiv.appendChild(messageContent);
 
     // Timestamp
@@ -1684,6 +1763,7 @@ function addMessage(text, className, saveToHistory = true, ts = null) {
 
     return messageId;
 }
+
 
 
 
