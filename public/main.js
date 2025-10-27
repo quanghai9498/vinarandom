@@ -1638,13 +1638,21 @@ function sendChatMessage() {
 
 
 // Sửa hàm addMessage
+
 function addMessage(text, className, saveToHistory = true, ts = null) {
     const chatMessages = document.getElementById('chatMessages');
     if (!chatMessages) return;
 
+    // Nếu là loading thì tạo id duy nhất dễ nhận diện
+    let messageId;
+    if (text === 'Đang suy nghĩ...') {
+        messageId = `msg-loading-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+    } else {
+        messageId = `msg-${Date.now()}`;
+    }
+
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${className}`;
-    const messageId = `msg-${Date.now()}`;
     messageDiv.id = messageId;
 
     // Nội dung
@@ -1657,21 +1665,37 @@ function addMessage(text, className, saveToHistory = true, ts = null) {
     const timestampDiv = document.createElement('div');
     timestampDiv.className = 'message-timestamp';
     let dateObj = ts ? new Date(ts) : new Date();
-    timestampDiv.textContent = dateObj.toLocaleTimeString('vi-VN', {
-        hour: '2-digit',
-        minute: '2-digit'
-    });
+    const timeStr = dateObj.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+    const dateStr = dateObj.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    timestampDiv.textContent = `${timeStr} ${dateStr}`;
     messageDiv.appendChild(timestampDiv);
 
     chatMessages.appendChild(messageDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 
-    // Lưu vào lịch sử nếu cần 
+    // KHÔNG lưu vào history nếu là loading message
     if (saveToHistory && text !== 'Đang suy nghĩ...') {
-        conversationHistory.push({role: className === 'ai-message' ? 'assistant' : 'user', content: text, timestamp: Date.now()});
+        conversationHistory.push({
+            role: className === 'ai-message' ? 'assistant' : 'user',
+            content: text,
+            timestamp: ts ? ts : Date.now()
+        });
     }
+
     return messageId;
 }
+
+
+
+
+function removeAllLoadingMessages() {
+    document.querySelectorAll('.ai-message .message-content').forEach(el => {
+        if (el.textContent.trim() === 'Đang suy nghĩ...') {
+            el.parentNode.parentNode.removeChild(el.parentNode);
+        }
+    });
+}
+
 
 
 
