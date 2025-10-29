@@ -43,6 +43,15 @@ let wheelColors = [
 // Biến chat từ file gốc
 let conversationHistory = [];
 
+//Heroic rescue mode
+let heroicRescueMode = false;
+let strikeCounts = {};
+let isHeroicEffectRunning = false;
+
+// Last Survivor mode
+let lastSurvivorMode = false;
+
+
 // Danh sách các hình nền cho từng chủ đề
 const backgroundImages = {
     default: "",
@@ -223,19 +232,109 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        document.getElementById("randomButton")?.addEventListener("click", function() {
-            const backgroundMusic = document.getElementById("backgroundMusic");
-            if (backgroundMusic && backgroundMusic.src && backgroundMusic.src !== window.location.href) {
-                backgroundMusic.play().catch(error => {
-                    console.log("Không thể phát nhạc nền:", error.message);
-                });
+
+
+
+        document.getElementById("randomButton").addEventListener("click", function() {
+          const backgroundMusic = document.getElementById("backgroundMusic");
+          if (backgroundMusic && backgroundMusic.src && backgroundMusic.src !== window.location.href) {
+            backgroundMusic.play().catch(error => {
+              console.log("Không thể phát nhạc nền:", error.message);
+            });
+          }
+
+          // Chế độ Last Survivor ưu tiên kiểm tra trước
+          if (lastSurvivorMode) {
+            doLastSurvivor();
+            return;
+          }
+
+          // Chế độ Funny Duck
+          if (duckMode) {
+            runFunnyDuckAnimation();
+            return;
+          }
+
+          // Chế độ Heroic rescue
+          if (heroicRescueMode) {
+            if (isHeroicEffectRunning) return; // tránh double click
+            isHeroicEffectRunning = true;
+            let running = true;
+
+            function heroicStrike() {
+              const frozenStudents = document.querySelectorAll('.student.frozen');
+              if (frozenStudents.length === 0) {
+                running = false;
+                isHeroicEffectRunning = false;
+                return;
+              }
+              const idx = Math.floor(Math.random() * frozenStudents.length);
+              const targetStudent = frozenStudents[idx];
+              const name = targetStudent.textContent;
+              if (!strikeCounts[name]) strikeCounts[name] = 0;
+
+              strikeLightning(targetStudent);
+
+              setTimeout(() => {
+                strikeCounts[name] += 1;
+                updateStudentCrackState(targetStudent, name);
+
+                if (strikeCounts[name] === 3) {
+                  running = false;
+                  isHeroicEffectRunning = false;
+                }
+              }, 700);
             }
-            if (duckMode) {
-                runFunnyDuckAnimation();
-            } else {
-                selectRandomStudentWithEffect();
-            }
+
+            const heroicInterval = setInterval(function() {
+              if (!running) {
+                clearInterval(heroicInterval);
+                return;
+              }
+              heroicStrike();
+            }, 1200);
+            return;
+          }
+
+          // Chế độ mặc định: random highlight màu
+          selectRandomStudentWithEffect();
         });
+
+
+
+        document.getElementById('heroicRescueMode').addEventListener('change', function() {
+          heroicRescueMode = this.checked;
+          const students = document.querySelectorAll('.student');
+          if (heroicRescueMode) {
+            students.forEach(stu => {
+              const name = stu.textContent;
+              // Không áp lại lớp băng cho học sinh đã đủ strike
+              if (!strikeCounts[name] || strikeCounts[name] < 3) {
+                stu.classList.add('frozen');
+                stu.classList.remove('break-ice', 'ice-crack-1', 'ice-crack-2');
+              }
+            });
+          } else {
+            students.forEach(stu => stu.classList.remove('frozen', 'break-ice', 'ice-crack-1', 'ice-crack-2'));
+            strikeCounts = {};
+          }
+        });
+
+
+
+
+        document.getElementById('lastSurvivorMode').addEventListener('change', function() {
+          lastSurvivorMode = this.checked;
+          // Reset lại trạng thái list
+          document.querySelectorAll('.student').forEach(stu => {
+            stu.classList.remove('survivor-break', 'selected');
+            stu.style.opacity = "";
+            stu.style.pointerEvents = "";
+          });
+        });
+
+
+
 
         // GÁN LẠI SỰ KIỆN CHO BG, MUSIC, CUSTOM (nên nằm sau applySaved)
         document.getElementById("themes").addEventListener("change", changeTheme);
@@ -263,7 +362,133 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 
+function disableDefaultEffects() {
+  // Tắt tất cả class hiệu ứng mặc định như highlight-yellow v.v.
+  document.querySelectorAll('.student').forEach(stu => {
+    stu.classList.remove('highlight-yellow', 'slow-highlight', 'selected');
+    // ... các class hiệu ứng màu khác nếu hệ thống đang dùng
+  });
+  isEffectRunning = false; // kiểm soát biến global hiệu ứng màu (nếu có sẵn)
+}
 
+
+function strikeLightning(studentDiv) {
+  const rect = studentDiv.getBoundingClientRect();
+  const lightning = document.createElement('div');
+  lightning.className = 'lightning';
+  const lightningHeight = 200; // cùng size trong CSS
+  lightning.style.left = `${rect.left + window.scrollX + rect.width / 2 - 40}px`; // 40 là nửa width mới 80
+  lightning.style.top = `${rect.top + window.scrollY - lightningHeight + 5}px`; // 5px offset cho tip chạm vào box
+
+  document.body.appendChild(lightning);
+
+  // Rung tên học sinh dưới tia sét
+  studentDiv.classList.add('shake');
+  setTimeout(() => {
+    lightning.remove();
+    studentDiv.classList.remove('shake');
+  }, 700);
+}
+
+// Tạo hiệu ứng vỡ băng
+function playBreakIceEffect(studentDiv) {
+  studentDiv.classList.add('break-ice');
+  setTimeout(() => studentDiv.classList.remove('break-ice'), 1500);
+  // Có thể thêm hiệu ứng animation riêng cho break-ice
+}
+
+function heroicRescueRandom() {
+    const students = document.querySelectorAll('.student.frozen');
+    if (students.length === 0) return;
+    // Ngẫu nhiên chọn 1 học sinh bị đóng băng để tia sét đánh
+    const idx = Math.floor(Math.random() * students.length);
+    const targetStudent = students[idx];
+    if (!strikeCounts[targetStudent.textContent]) strikeCounts[targetStudent.textContent] = 0;
+    strikeLightning(targetStudent);
+    strikeCounts[targetStudent.textContent] += 1;
+
+    // Nếu bị đánh đủ 3 lần thì vỡ băng
+    if (strikeCounts[targetStudent.textContent] >= 3) {
+        targetStudent.classList.remove('frozen');
+        targetStudent.classList.add('break-ice');
+        setTimeout(() => targetStudent.classList.remove('break-ice'), 1500);
+        speak(targetStudent.textContent); // Đọc tên học sinh
+    }
+}
+
+
+function updateFrozenStates() {
+  document.querySelectorAll('.student').forEach(stu => {
+    const name = stu.textContent;
+    if (strikeCounts[name] == null || strikeCounts[name] < 3) {
+      if (!stu.classList.contains('break-ice')) {
+        stu.classList.add('frozen');
+      }
+    } else {
+      stu.classList.remove('frozen');
+    }
+  });
+}
+
+function updateStudentCrackState(targetStudent, name) {
+  // Reset trạng thái nứt cũ trước khi cập nhật (hãy đảm bảo không lặp nhiều lần)
+  targetStudent.classList.remove('ice-crack-1', 'ice-crack-2', 'break-ice');
+
+  if (strikeCounts[name] === 1) {
+    targetStudent.classList.add('ice-crack-1');
+  }
+  if (strikeCounts[name] === 2) {
+    targetStudent.classList.add('ice-crack-2');
+  }
+  if (strikeCounts[name] === 3) {
+    targetStudent.classList.add('break-ice');
+    targetStudent.classList.remove('frozen');
+    speak(name);
+  }
+}
+
+
+
+// Tạo hiệu ứng học sinh vỡ dần tên và biến mất
+function doLastSurvivor() {
+  let running = true;
+
+  function knockOutOne() {
+    let survivors = Array.from(document.querySelectorAll('.student')).filter(stu => !stu.classList.contains('survivor-break'));
+    if (survivors.length <= 1) {
+      // Chỉ còn học sinh cuối
+      let lastStudent = survivors[0];
+      if (lastStudent) {
+        lastStudent.classList.add('selected');
+        lastStudent.style.opacity = '1';
+        lastStudent.style.pointerEvents = 'auto';
+        speak(lastStudent.textContent);
+      }
+      running = false;
+      return;
+    }
+    let idx = Math.floor(Math.random() * survivors.length);
+    let target = survivors[idx];
+    target.classList.add('survivor-break');
+    setTimeout(() => {
+      target.style.opacity = "0.2";
+      target.style.pointerEvents = "none";
+      // Tiếp tục vòng loại nếu vẫn đang chạy
+      if (running) {
+        setTimeout(knockOutOne, 350); // thời gian delay loại tiếp (350ms có thể điều chỉnh)
+      }
+    }, 800); // sau khi hiệu ứng vỡ xong thì mới loại tiếp
+  }
+
+  // Chạy ngay lập tức sau 1 lần bấm random
+  knockOutOne();
+}
+
+
+
+
+
+// upload background and music
 function uploadCustomBg(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -1343,6 +1568,7 @@ function handleFileUpload(event) {
 // ============================================================================
 
 function selectRandomStudentWithEffect() {
+    if (heroicRescueMode|| duckMode) return;
     const students = document.querySelectorAll(".student:not(.selected)");
     if (students.length === 0) {
         alert("Hãy import danh sách học sinh trước!");
