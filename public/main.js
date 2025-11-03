@@ -1912,7 +1912,7 @@ function initializeChatInterface() {
 }
 
 
-function sendChatMessage() {
+async function sendChatMessage() {
     const chatInput = document.getElementById('chatInput');
     const message = chatInput.value.trim();
     if (!message) return;
@@ -1920,6 +1920,15 @@ function sendChatMessage() {
     // HIỂN THỊ TIN NHẮN USER NGAY LẬP TỨC - KHÔNG LƯU VÀO HISTORY
     addMessage(message, 'user-message', false);
     
+    // Nếu có từ khóa thầy Quảng, ghép hệ thống thông tin bổ sung
+    if (message.toLowerCase().includes("quảng")) {
+        const authorInfo = await getAuthorInfo();
+        if (authorInfo) {
+            conversationHistory.push({role: "system", content: `Thông tin về thầy Quảng:\n${authorInfo}`});
+        }
+    }
+    
+
     // Xóa nội dung input
     chatInput.value = '';
     
@@ -2294,6 +2303,17 @@ function speak(text) {
     }
 }
 
+
+// ============================================================================
+// HÀM AI đọc dữ liệu từ file
+// ============================================================================
+async function getAuthorInfo() {
+  try {
+    const res = await fetch('./Author.txt');
+    if (res.ok) return await res.text();
+  } catch (e) {}
+  return '';
+}
 
 
 console.log('Main.js loaded successfully');
