@@ -2309,11 +2309,12 @@ function speak(text) {
 // ============================================================================
 async function getAuthorInfo() {
   try {
-    const res = await fetch('author.txt');
+    const res = await fetch('/author.txt');
     if (res.ok) return await res.text();
   } catch (e) {}
   return '';
 }
+
 
 
 console.log('Main.js loaded successfully');
