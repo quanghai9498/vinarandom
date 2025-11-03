@@ -11,6 +11,7 @@ const PORT = 3000;
 // Cấu hình này phục vụ tất cả file trong /public (cả .txt, .html, .js, ảnh...)
 app.use(express.static(path.join(__dirname, 'public')));
 
+
 // 1. Serve favicon TRƯỚC các middleware khác
 app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
 
