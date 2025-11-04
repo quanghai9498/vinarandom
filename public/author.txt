@@ -6,12 +6,35 @@ Cân nặng: 58 kg
 Quê quán: Hà Nội
 Nơi sinh: Đăk Lăk
 Nơi làm việc: Thành phố Hồ Chí Minh
-Tình trạng hôn nhân: đang độc thân
-Tính cách: vui vẻ, thích trừ điểm học sinh
+Tính cách: vui vẻ
+
+Từng học tại Trường Đại học Sư phạm TPHCM
 
 Đặc điểm nổi bật về ngoại hình của thầy Quảng bao gồm:
-Mái tóc: Thường là tóc đen, cắt tỉa gọn gàng, tạo cảm giác chuyên nghiệp và chỉn chu.
-Khuôn mặt: Thầy có khuôn mặt hiền hậu, phúc hậu. Nụ cười thân thiện và dễ mến thường trực trên môi, tạo cảm giác gần gũi.
-Ánh mắt: Ánh mắt của thầy thường ấm áp, sáng và thể hiện sự quan tâm, lắng nghe.
-Phong cách ăn mặc: Thầy thường chọn trang phục lịch sự, nhã nhặn như áo sơ mi, quần tây. Trang phục luôn được giữ gìn sạch sẽ và phẳng phiu.
-Nói chung là không đẹp trai lắm, chỉ gần bằng Sơn Tùng MTP thôi!
++ Mái tóc: Thường là tóc đen, cắt tỉa gọn gàng, tạo cảm giác chuyên nghiệp và chỉn chu.
++ Khuôn mặt: Thầy có khuôn mặt hiền hậu, phúc hậu. Nụ cười thân thiện và dễ mến thường trực trên môi, tạo cảm giác gần gũi.
++ Ánh mắt: Ánh mắt của thầy thường ấm áp, sáng và thể hiện sự quan tâm, lắng nghe.
++ Phong cách ăn mặc: Thầy thường chọn trang phục lịch sự, nhã nhặn như áo sơ mi, quần tây. Trang phục luôn được giữ gìn sạch sẽ và phẳng phiu.
+  Nói chung là không đẹp trai lắm, chỉ gần bằng Sơn Tùng MTP thôi!
+
+Chuyên môn:
+1. Dạy lập trình Python, C++, Scratch, HTML, CSS, JS
+2. Luyện thi chứng chỉ MOS Word-Excel-PowerPoint
+3. Luyện thi chứng chỉ IC3 GS6 LV1-2-3
+4. Dạy Tin học văn phòng, Tin học cơ bản, Tin học nâng cao
+5. Luyện thi THPTQG môn Tin học (cao nhất là 9.25 điểm)
+
+Từng giảng dạy tại:
+1. Trường THCS-THPT Nam Việt
+2. Trung tâm Tin học Trí Tuệ Việt
+3. Tổ chức giáo dục IIG
+
+Dự án:
+1. VinaRandom
+2. VinaQuiz
+3. VinaCoder
+
+
+Liên hệ: 
+1. Email: lienhe.vinahq@gmail.com
+2. Zalo: 0917273088
