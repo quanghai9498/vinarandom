@@ -1660,3 +1660,135 @@ body.chat-fullscreen-active .chat-container {
   box-shadow: 0 0 16px 6px #ffec95;
   opacity: 1 !important;
 }
+
+
+
+
+
+
+
+
+
+
+
+/* ===== Trình bày khung AI Assistant cực gọn, giống ChatGPT ===== */
+
+/* Khung chính tối ưu chỉ cho AI message */
+.chat-container .ai-message {
+  background: transparent !important;
+  color: #eee !important;
+  font-size: 18px !important;
+  line-height: 1.48 !important;
+  padding: 0 !important;
+  margin-bottom: 12px !important;
+  word-break: break-word !important;
+  box-sizing: border-box !important;
+}
+
+/* Tiêu đề ý cha, strong đầu dòng: spacing cực gọn, trắng sáng, in đậm */
+.chat-container .ai-message h1,
+.chat-container .ai-message h2,
+.chat-container .ai-message h3,
+.chat-container .ai-message h4,
+.chat-container .ai-message strong {
+  color: #fff !important;
+  font-size: 19px !important;
+  font-weight: 700 !important;
+  margin: 8px 0 2.5px 0 !important;
+  line-height: 1.21 !important;
+  display: flex; align-items: center; gap: 7px;
+}
+
+/* Nếu có emoji: căn thẳng & sáng như đầu dòng mẫu */
+.chat-container .ai-message h1 span.emoji,
+.chat-container .ai-message h2 span.emoji,
+.chat-container .ai-message h3 span.emoji,
+.chat-container .ai-message h4 span.emoji,
+.chat-container .ai-message strong span.emoji {
+  font-size: 1.08em !important;
+  margin-right: 7px !important;
+  vertical-align: middle;
+}
+
+/* List tiêu chuẩn, gạch đầu dòng trắng rõ nét, spacing cực gọn */
+.chat-container .ai-message ul,
+.chat-container .ai-message ol {
+  list-style: disc outside !important; 
+  color: #eee !important;
+  margin: 0 0 3px 0 !important;
+  padding-left: 24px !important;
+  font-size: 17px !important;
+}
+
+.chat-container .ai-message li {
+  margin-bottom: 2px !important;
+  line-height: 1.42 !important;
+  font-size: 17px !important;
+  background: none !important;
+  text-indent: 0 !important;  
+}
+.chat-container .ai-message li:last-child { margin-bottom: 0 !important; }
+.chat-container .ai-message li::marker { color: #fff !important; font-size: 1.09em !important; }
+
+.chat-container .ai-message p {
+  margin: 0 0 2px 0 !important;
+  color: #ededed !important;
+  font-size: 18px !important;
+  line-height: 1.46 !important;
+  padding: 0 !important;
+}
+
+/* Bold nổi khối, màu vàng, cho keyword (loại trừ tiêu đề block) */
+.chat-container .ai-message b,
+.chat-container .ai-message strong:not(h1):not(h2):not(h3):not(h4) {
+  color: #ffe16f !important;
+  font-weight: 700 !important;
+  background: none !important;
+  font-size: 18px !important;
+  margin-right: 0.12em !important;
+}
+
+/* Code block/code inline */
+.chat-container .ai-message code {
+  background: #232624 !important;
+  color: #b4ff86 !important;
+  font-size: 15px !important;
+  padding: 2px 6px !important;
+  border-radius: 4px !important;
+  font-family: 'JetBrains Mono', 'Consolas', 'monospace', monospace;
+}
+.chat-container .ai-message pre {
+  background: #24272e !important;
+  border-radius: 7px !important;
+  color: #ededed !important;
+  font-size: 16px !important;
+  padding: 10px 18px !important;
+  margin: 8px 0 !important;
+  overflow-x: auto;
+}
+.chat-container .ai-message blockquote {
+  border-left: 3.5px solid #50def9 !important;
+  padding-left: 13px !important;
+  color: #6dfaff !important;
+  font-size: 16.5px !important;
+  opacity: 0.97;
+  background: none !important;
+  margin: 7px 0 !important;
+}
+.chat-container .ai-message em {
+  color: #ffeabd !important;
+  font-size: 16px !important;
+  font-style: italic !important;
+  background: none !important;
+}
+
+/* Mobile tối ưu */
+@media (max-width: 768px) {
+  .chat-container .ai-message { font-size: 15.2px !important; }
+  .chat-container .ai-message li { font-size: 14px !important; }
+  .chat-container .ai-message h1,
+  .chat-container .ai-message h2,
+  .chat-container .ai-message h3,
+  .chat-container .ai-message h4,
+  .chat-container .ai-message strong { font-size: 15.4px !important; }
+}
