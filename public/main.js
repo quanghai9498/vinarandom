@@ -19,6 +19,7 @@ document.addEventListener('touchstart', () => { userHasInteracted = true; }, { o
 let originalStudentRows = [];
 let duckMode = false;
 let duckMoving = false;
+let backgroundMusicLoopInterval = null;
 
 // Biến timer được cập nhật
 let timerInterval;
@@ -28,6 +29,7 @@ let isRunning = false;
 let isCountdownMode = false; // true = đếm ngược, false = đếm lên
 let warningPlayed = false; // Đã phát cảnh báo chưa
 let startTime;
+
 
 // Biến cho vòng quay (được mở rộng)
 let wheelSectors = [
@@ -109,6 +111,50 @@ function applySavedMusic() {
         bgMusic.load();
     }
 }
+
+
+
+// Hàm lặp lại nhạc khi random
+function playLoopedBackgroundMusic() {
+  const bgMusic = document.getElementById('backgroundMusic');
+  if (!bgMusic) return;
+  stopLoopedBackgroundMusic(); // luôn đảm bảo clearInterval cũ
+
+  bgMusic.loop = false;
+  bgMusic.currentTime = 0;
+  bgMusic.play().catch(()=>{});
+
+  // Bắt đầu interval kiểm tra nhạc
+  backgroundMusicLoopInterval = setInterval(() => {
+    // Nếu đã bị tắt/paused hoặc kết thúc, play lại từ đầu
+    if (bgMusic.paused || Math.abs(bgMusic.currentTime - bgMusic.duration) < 0.2) {
+      try {
+        bgMusic.currentTime = 0;
+        bgMusic.play().catch(()=>{});
+      } catch(e) {}
+    }
+  }, 500); // check mỗi nửa giây
+}
+
+function stopLoopedBackgroundMusic() {
+  const bgMusic = document.getElementById('backgroundMusic');
+  if (!bgMusic) return;
+  // clear interval loop nếu có
+  if (backgroundMusicLoopInterval) {
+    clearInterval(backgroundMusicLoopInterval);
+    backgroundMusicLoopInterval = null;
+  }
+  bgMusic.pause();
+  bgMusic.currentTime = 0;
+}
+
+
+
+
+
+
+
+
 
 
 // ==== Chọn lại theme: xóa custom BG ====
@@ -236,12 +282,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
         document.getElementById("randomButton").addEventListener("click", function() {
-          const backgroundMusic = document.getElementById("backgroundMusic");
-          if (backgroundMusic && backgroundMusic.src && backgroundMusic.src !== window.location.href) {
-            backgroundMusic.play().catch(error => {
-              console.log("Không thể phát nhạc nền:", error.message);
-            });
-          }
+          playLoopedBackgroundMusic();
 
           // Chế độ Last Survivor ưu tiên kiểm tra trước
           if (lastSurvivorMode) {
@@ -256,11 +297,10 @@ document.addEventListener('DOMContentLoaded', function() {
           }
 
           // Chế độ Heroic rescue
-          if (heroicRescueMode) {
-            if (isHeroicEffectRunning) return; // tránh double click
+          if (heroicRescueMode) { // Chế độ Heroic Rescue
+            if (isHeroicEffectRunning) return;
             isHeroicEffectRunning = true;
             let running = true;
-
             function heroicStrike() {
               const frozenStudents = document.querySelectorAll('.student.frozen');
               if (frozenStudents.length === 0) {
@@ -272,23 +312,20 @@ document.addEventListener('DOMContentLoaded', function() {
               const targetStudent = frozenStudents[idx];
               const name = targetStudent.textContent;
               if (!strikeCounts[name]) strikeCounts[name] = 0;
-
               strikeLightning(targetStudent);
-
               setTimeout(() => {
                 strikeCounts[name] += 1;
                 updateStudentCrackState(targetStudent, name);
-
                 if (strikeCounts[name] === 3) {
                   running = false;
                   isHeroicEffectRunning = false;
                 }
               }, 700);
             }
-
             const heroicInterval = setInterval(function() {
               if (!running) {
                 clearInterval(heroicInterval);
+                stopLoopedBackgroundMusic(); // Dừng nhạc khi kết thúc hiệu ứng
                 return;
               }
               heroicStrike();
@@ -296,7 +333,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
           }
 
-          // Chế độ mặc định: random highlight màu
+          // Mặc định (hoặc Secret Mode): random highlight màu
           selectRandomStudentWithEffect();
         });
 
@@ -449,19 +486,21 @@ function updateStudentCrackState(targetStudent, name) {
 
 
 
-// Tạo hiệu ứng học sinh vỡ dần tên và biến mất
+// ========================
+// HÀM CHẾ ĐỘ LAST SURVIVOR
+// ========================
 function doLastSurvivor() {
   let running = true;
 
   function knockOutOne() {
     let survivors = Array.from(document.querySelectorAll('.student')).filter(stu => !stu.classList.contains('survivor-break'));
     if (survivors.length <= 1) {
-      // Chỉ còn học sinh cuối
       let lastStudent = survivors[0];
       if (lastStudent) {
         lastStudent.classList.add('selected');
         lastStudent.style.opacity = '1';
         lastStudent.style.pointerEvents = 'auto';
+        stopLoopedBackgroundMusic();
         speak(lastStudent.textContent);
       }
       running = false;
@@ -473,18 +512,13 @@ function doLastSurvivor() {
     setTimeout(() => {
       target.style.opacity = "0.2";
       target.style.pointerEvents = "none";
-      // Tiếp tục vòng loại nếu vẫn đang chạy
       if (running) {
-        setTimeout(knockOutOne, 350); // thời gian delay loại tiếp (350ms có thể điều chỉnh)
+        setTimeout(knockOutOne, 350);
       }
-    }, 800); // sau khi hiệu ứng vỡ xong thì mới loại tiếp
+    }, 800);
   }
-
-  // Chạy ngay lập tức sau 1 lần bấm random
   knockOutOne();
 }
-
-
 
 
 
@@ -526,6 +560,314 @@ function uploadCustomMusic(e) {
 }
 
 
+// ============================================================================
+// DUCK MODE
+// ============================================================================
+
+function initializeDuckMode() {
+    const duckCheckbox = document.getElementById('duckMode');
+    const funnyDuck = document.getElementById('funnyDuck');
+    const randomButton = document.getElementById('randomButton');
+
+    if (duckCheckbox && funnyDuck && randomButton) {
+        duckCheckbox.addEventListener('change', function() {
+            duckMode = this.checked;
+            funnyDuck.style.display = duckMode ? 'block' : 'none';
+            if (!duckMode) {
+                funnyDuck.style.left = '';
+                funnyDuck.style.top = '';
+            }
+
+            if (duckMode) {
+                // Đặt vịt cạnh nút random
+                const btnRect = randomButton.getBoundingClientRect();
+                funnyDuck.style.position = 'absolute';
+                funnyDuck.style.left = (btnRect.right + 10) + 'px';
+                funnyDuck.style.top = (btnRect.top - 10) + 'px';
+            }
+        });
+    }
+}
+
+
+// ============================================================================
+// CHẾ ĐỘ BÍ MẬT
+// ============================================================================
+
+function initializeSecretMode() {
+    const secretModeCheckbox = document.getElementById('secretMode');
+    if (!secretModeCheckbox) return;
+
+    secretModeCheckbox.addEventListener('change', function() {
+        const studentListDiv = document.getElementById('studentList');
+        if (!studentListDiv) return;
+
+        if (this.checked) {
+            // Shuffle và render lại danh sách
+            const shuffled = shuffleArray(originalStudentRows);
+            studentListDiv.innerHTML = '';
+            shuffled.forEach(row => {
+                if (row.length > 0) {
+                    const studentDiv = document.createElement('div');
+                    studentDiv.textContent = 'CHOOSE ME🙋';
+                    studentDiv.dataset.name = row[0];
+                    studentDiv.className = 'student secret-mode';
+                    studentListDiv.appendChild(studentDiv);
+                }
+            });
+        } else {
+            // Render lại đúng thứ tự gốc
+            studentListDiv.innerHTML = '';
+            originalStudentRows.forEach(row => {
+                if (row.length > 0) {
+                    const studentDiv = document.createElement('div');
+                    studentDiv.textContent = row[0];
+                    studentDiv.className = 'student';
+                    studentListDiv.appendChild(studentDiv);
+                }
+            });
+        }
+    });
+}
+
+
+// ============================================================================
+// CHỌN HỌC SINH NGẪU NHIÊN
+// ============================================================================
+
+function selectRandomStudentWithEffect() {
+    if (heroicRescueMode|| duckMode) return;
+    const students = document.querySelectorAll(".student:not(.selected)");
+    if (students.length === 0) {
+        alert("Hãy import danh sách học sinh trước!");
+        return;
+    }
+
+    // Ngăn nhấn random khi hiệu ứng đang chạy
+    if (isEffectRunning) return;
+    isEffectRunning = true;
+
+    
+    const totalDuration = 7500;
+    const stepDuration = 400;
+
+    // Reset trạng thái ban đầu
+    students.forEach(student => student.classList.remove("highlight-yellow"));
+
+    // Hiệu ứng chạy nền vàng lần lượt
+    const highlightInterval = setInterval(() => {
+        students.forEach(student => student.classList.remove("highlight-yellow"));
+        
+        // Chọn ngẫu nhiên học sinh để highlight
+        const randomIndex = Math.floor(Math.random() * students.length);
+        students[randomIndex].classList.add("highlight-yellow");
+    }, stepDuration);
+
+    // Sau 7 giây, chuyển sang nhấp nháy 3 học sinh
+    setTimeout(() => {
+        clearInterval(highlightInterval);
+        // Reset lại trạng thái nền cho tất cả
+        students.forEach(student => student.classList.remove("highlight-yellow"));
+
+        // Chọn 3 học sinh để nhấp nháy
+        const unselectedStudents = Array.from(students);
+        const selectedStudents = [];
+
+        while (selectedStudents.length < 3 && unselectedStudents.length > 0) {
+            const randomIndex = Math.floor(Math.random() * unselectedStudents.length);
+            const selectedStudent = unselectedStudents.splice(randomIndex, 1)[0];
+            selectedStudents.push(selectedStudent);
+        }
+
+        // Hiển thị tên thật của 3 học sinh được chọn trong chế độ bí mật
+        if (document.getElementById('secretMode').checked) {
+            selectedStudents.forEach(student => {
+                if (student.dataset.name) {
+                    student.textContent = student.dataset.name;
+                }
+            });
+        }
+
+        // Nhấp nháy chậm ở 3 học sinh
+        selectedStudents.forEach(student => {
+            student.classList.add("slow-highlight");
+        });
+
+        // Sau 5 giây nữa, chọn 1 học sinh cuối cùng
+        setTimeout(() => {
+            // Chọn ngẫu nhiên 1 học sinh từ 3 học sinh vừa nhấp nháy
+            const finalSelectedStudent = selectedStudents[Math.floor(Math.random() * selectedStudents.length)];
+
+            // Reset trạng thái tất cả học sinh
+            students.forEach(student => student.classList.remove("slow-highlight"));
+
+            // Đảm bảo hiển thị tên thật của học sinh được chọn trong chế độ bí mật
+            if (document.getElementById('secretMode').checked && finalSelectedStudent.dataset.name) {
+                finalSelectedStudent.textContent = finalSelectedStudent.dataset.name;
+            }
+
+            // Đánh dấu học sinh được chọn
+            finalSelectedStudent.classList.add("selected");
+            finalSelectedStudent.style.backgroundColor = "red";
+
+            // Hiệu ứng pháo hoa
+            const rect = finalSelectedStudent.getBoundingClientRect();
+            createFireworks(rect.left + rect.width / 2, rect.top + rect.height / 2);
+
+            // Thêm hiệu ứng bay cho tên học sinh
+            const flyingName = document.createElement("div");
+            flyingName.className = "flying-name";
+            flyingName.textContent = finalSelectedStudent.textContent;
+            document.body.appendChild(flyingName);
+            flyingName.style.left = `${rect.left + rect.width / 2}px`;
+            flyingName.style.top = `${rect.top}px`;
+            setTimeout(() => {
+                flyingName.remove();
+            }, 4000);
+
+            // Gắn hình ảnh vui nhộn
+            const emojiImage = document.createElement("img");
+            emojiImage.className = "emoji-image";
+            emojiImage.src = "/bg/troll3.gif";
+            emojiImage.alt = "Hình ảnh vui nhộn";
+            document.body.appendChild(emojiImage);
+
+            // Điều chỉnh vị trí hình ảnh ngay phía trên tên
+            emojiImage.style.position = "absolute";
+            emojiImage.style.left = `${rect.left + rect.width / 2 - emojiImage.width / 2}px`;
+            emojiImage.style.top = `${rect.top - emojiImage.height - 10}px`;
+            setTimeout(() => {
+                emojiImage.remove();
+            }, 3300);
+
+            // Đọc tên học sinh
+            const studentName = finalSelectedStudent.textContent;
+            console.log("Đọc tên học sinh:", studentName);
+            speak(studentName);
+            stopLoopedBackgroundMusic();
+
+            // Kết thúc hiệu ứng
+            isEffectRunning = false;
+        }, 7000);
+    }, totalDuration);
+    
+}
+
+function createFireworks(x, y) {
+    for (let i = 0; i < 10; i++) {
+        const firework = document.createElement("div");
+        firework.className = "firework";
+        firework.style.left = `${x}px`;
+        firework.style.top = `${y}px`;
+        firework.style.animationDelay = `${Math.random()}s`;
+        document.body.appendChild(firework);
+        setTimeout(() => {
+            firework.remove();
+        }, 1000);
+    }
+}
+
+function runFunnyDuckAnimation() {
+    if (duckMoving) return;
+    duckMoving = true;
+    
+    const funnyDuck = document.getElementById('funnyDuck');
+    const studentListDiv = document.getElementById('studentList');
+    const students = Array.from(document.querySelectorAll(".student:not(.selected)"));
+
+    if (!funnyDuck || !studentListDiv || students.length === 0) {
+        duckMoving = false;
+        alert("Hãy import danh sách học sinh trước!");
+        return;
+    }
+
+    // Đảm bảo vịt dùng position: fixed
+    funnyDuck.style.display = 'block';
+    funnyDuck.style.position = 'fixed';
+
+    // Lấy vùng danh sách học sinh
+    const listRect = studentListDiv.getBoundingClientRect();
+    const duckWidth = funnyDuck.offsetWidth;
+    const duckHeight = funnyDuck.offsetHeight;
+
+    // Đặt vịt ở vị trí ngẫu nhiên ban đầu
+    function randomPos() {
+        const x = listRect.left + Math.random() * (listRect.width - duckWidth);
+        const y = listRect.top + Math.random() * (listRect.height - duckHeight);
+        return {x, y};
+    }
+
+    // Hàm di chuyển vịt mượt đến vị trí mới
+    function moveDuckSmoothly(toX, toY, duration = 1200, cb) {
+        const fromX = parseFloat(funnyDuck.style.left) || listRect.left;
+        const fromY = parseFloat(funnyDuck.style.top) || listRect.top;
+        const start = performance.now();
+        
+        function animateDuck(now) {
+            const elapsed = now - start;
+            const t = Math.min(1, elapsed / duration);
+            const currentX = fromX + (toX - fromX) * t;
+            const currentY = fromY + (toY - fromY) * t;
+            
+            funnyDuck.style.left = `${currentX}px`;
+            funnyDuck.style.top = `${currentY}px`;
+            
+            if (t < 1) {
+                requestAnimationFrame(animateDuck);
+            } else if (cb) {
+                cb();
+            }
+        }
+        requestAnimationFrame(animateDuck);
+    }
+
+    // Đặt vịt ở vị trí random đầu tiên
+    const first = randomPos();
+    funnyDuck.style.left = `${first.x}px`;
+    funnyDuck.style.top = `${first.y}px`;
+
+    // Số lần di chuyển
+    const totalDuration = 12000;
+    const stepDuration = 1200;
+    const steps = Math.floor(totalDuration / stepDuration);
+    let currentStep = 0;
+
+    function nextMove() {
+        if (currentStep < steps) {
+            const pos = randomPos();
+            moveDuckSmoothly(pos.x, pos.y, stepDuration, () => {
+                currentStep++;
+                nextMove();
+            });
+        } else {
+            // Dừng lại trên một học sinh
+            const chosenIdx = Math.floor(Math.random() * students.length);
+            const chosenStudent = students[chosenIdx];
+            const studentRect = chosenStudent.getBoundingClientRect();
+            const finalX = studentRect.left + studentRect.width/2 - duckWidth/2;
+            const finalY = studentRect.top + chosenStudent.offsetHeight - duckHeight;
+
+            moveDuckSmoothly(finalX, finalY, 1200, () => {
+                // Nháy tên học sinh
+                students.forEach(s => s.classList.remove('selected'));
+                chosenStudent.classList.add('selected');
+                
+                if (document.getElementById('secretMode').checked && chosenStudent.dataset.name) {
+                    chosenStudent.textContent = chosenStudent.dataset.name;
+                }
+
+                // DỪNG NHẠC sau khi vịt đã chọn xong học sinh
+                stopLoopedBackgroundMusic();
+
+                // Đọc tên
+                const name = chosenStudent.textContent;
+                speak(name);
+                duckMoving = false;
+            });
+        }
+    }
+    nextMove();
+}
 
 
 
@@ -838,34 +1180,8 @@ function playAlarmSound() {
     }
 }
 
-// ============================================================================
-// DUCK MODE
-// ============================================================================
 
-function initializeDuckMode() {
-    const duckCheckbox = document.getElementById('duckMode');
-    const funnyDuck = document.getElementById('funnyDuck');
-    const randomButton = document.getElementById('randomButton');
 
-    if (duckCheckbox && funnyDuck && randomButton) {
-        duckCheckbox.addEventListener('change', function() {
-            duckMode = this.checked;
-            funnyDuck.style.display = duckMode ? 'block' : 'none';
-            if (!duckMode) {
-                funnyDuck.style.left = '';
-                funnyDuck.style.top = '';
-            }
-
-            if (duckMode) {
-                // Đặt vịt cạnh nút random
-                const btnRect = randomButton.getBoundingClientRect();
-                funnyDuck.style.position = 'absolute';
-                funnyDuck.style.left = (btnRect.right + 10) + 'px';
-                funnyDuck.style.top = (btnRect.top - 10) + 'px';
-            }
-        });
-    }
-}
 
 // ============================================================================
 // VÒNG QUAY
@@ -978,7 +1294,7 @@ function spinWheel() {
     wheelCanvas.spinning = true;
 
     // Cải thiện xử lý âm thanh cho website hosting
-    const audio = new Audio("Sound/spin.mp3");
+    const audio = new Audio("./Sound/spin.mp3");
     
     // Thêm fallback và error handling
     const playAudio = async () => {
@@ -1130,45 +1446,6 @@ function initializeWheelModal() {
     }
 }
 
-// ============================================================================
-// CHẾ ĐỘ BÍ MẬT
-// ============================================================================
-
-function initializeSecretMode() {
-    const secretModeCheckbox = document.getElementById('secretMode');
-    if (!secretModeCheckbox) return;
-
-    secretModeCheckbox.addEventListener('change', function() {
-        const studentListDiv = document.getElementById('studentList');
-        if (!studentListDiv) return;
-
-        if (this.checked) {
-            // Shuffle và render lại danh sách
-            const shuffled = shuffleArray(originalStudentRows);
-            studentListDiv.innerHTML = '';
-            shuffled.forEach(row => {
-                if (row.length > 0) {
-                    const studentDiv = document.createElement('div');
-                    studentDiv.textContent = 'CHOOSE ME🙋';
-                    studentDiv.dataset.name = row[0];
-                    studentDiv.className = 'student secret-mode';
-                    studentListDiv.appendChild(studentDiv);
-                }
-            });
-        } else {
-            // Render lại đúng thứ tự gốc
-            studentListDiv.innerHTML = '';
-            originalStudentRows.forEach(row => {
-                if (row.length > 0) {
-                    const studentDiv = document.createElement('div');
-                    studentDiv.textContent = row[0];
-                    studentDiv.className = 'student';
-                    studentListDiv.appendChild(studentDiv);
-                }
-            });
-        }
-    });
-}
 
 
 // ============================================================================
@@ -1339,8 +1616,7 @@ class RealtimeVisitorCounter {
     }
 }
 
-// Sử dụng với API endpoint
-// new RealtimeVisitorCounter('https://yourapi.com/api/counter');
+
 
 // ============================================================================
 // Reset counter (chỉ admin)
@@ -1563,238 +1839,6 @@ function handleFileUpload(event) {
     reader.readAsArrayBuffer(file);
 }
 
-// ============================================================================
-// CHỌN HỌC SINH NGẪU NHIÊN
-// ============================================================================
-
-function selectRandomStudentWithEffect() {
-    if (heroicRescueMode|| duckMode) return;
-    const students = document.querySelectorAll(".student:not(.selected)");
-    if (students.length === 0) {
-        alert("Hãy import danh sách học sinh trước!");
-        return;
-    }
-
-    // Ngăn nhấn random khi hiệu ứng đang chạy
-    if (isEffectRunning) return;
-    isEffectRunning = true;
-
-    
-    const totalDuration = 7500;
-    const stepDuration = 400;
-
-    // Reset trạng thái ban đầu
-    students.forEach(student => student.classList.remove("highlight-yellow"));
-
-    // Hiệu ứng chạy nền vàng lần lượt
-    const highlightInterval = setInterval(() => {
-        students.forEach(student => student.classList.remove("highlight-yellow"));
-        
-        // Chọn ngẫu nhiên học sinh để highlight
-        const randomIndex = Math.floor(Math.random() * students.length);
-        students[randomIndex].classList.add("highlight-yellow");
-    }, stepDuration);
-
-    // Sau 7 giây, chuyển sang nhấp nháy 3 học sinh
-    setTimeout(() => {
-        clearInterval(highlightInterval);
-        // Reset lại trạng thái nền cho tất cả
-        students.forEach(student => student.classList.remove("highlight-yellow"));
-
-        // Chọn 3 học sinh để nhấp nháy
-        const unselectedStudents = Array.from(students);
-        const selectedStudents = [];
-
-        while (selectedStudents.length < 3 && unselectedStudents.length > 0) {
-            const randomIndex = Math.floor(Math.random() * unselectedStudents.length);
-            const selectedStudent = unselectedStudents.splice(randomIndex, 1)[0];
-            selectedStudents.push(selectedStudent);
-        }
-
-        // Hiển thị tên thật của 3 học sinh được chọn trong chế độ bí mật
-        if (document.getElementById('secretMode').checked) {
-            selectedStudents.forEach(student => {
-                if (student.dataset.name) {
-                    student.textContent = student.dataset.name;
-                }
-            });
-        }
-
-        // Nhấp nháy chậm ở 3 học sinh
-        selectedStudents.forEach(student => {
-            student.classList.add("slow-highlight");
-        });
-
-        // Sau 5 giây nữa, chọn 1 học sinh cuối cùng
-        setTimeout(() => {
-            // Chọn ngẫu nhiên 1 học sinh từ 3 học sinh vừa nhấp nháy
-            const finalSelectedStudent = selectedStudents[Math.floor(Math.random() * selectedStudents.length)];
-
-            // Reset trạng thái tất cả học sinh
-            students.forEach(student => student.classList.remove("slow-highlight"));
-
-            // Đảm bảo hiển thị tên thật của học sinh được chọn trong chế độ bí mật
-            if (document.getElementById('secretMode').checked && finalSelectedStudent.dataset.name) {
-                finalSelectedStudent.textContent = finalSelectedStudent.dataset.name;
-            }
-
-            // Đánh dấu học sinh được chọn
-            finalSelectedStudent.classList.add("selected");
-            finalSelectedStudent.style.backgroundColor = "red";
-
-            // Hiệu ứng pháo hoa
-            const rect = finalSelectedStudent.getBoundingClientRect();
-            createFireworks(rect.left + rect.width / 2, rect.top + rect.height / 2);
-
-            // Thêm hiệu ứng bay cho tên học sinh
-            const flyingName = document.createElement("div");
-            flyingName.className = "flying-name";
-            flyingName.textContent = finalSelectedStudent.textContent;
-            document.body.appendChild(flyingName);
-            flyingName.style.left = `${rect.left + rect.width / 2}px`;
-            flyingName.style.top = `${rect.top}px`;
-            setTimeout(() => {
-                flyingName.remove();
-            }, 4000);
-
-            // Gắn hình ảnh vui nhộn
-            const emojiImage = document.createElement("img");
-            emojiImage.className = "emoji-image";
-            emojiImage.src = "/bg/troll3.gif";
-            emojiImage.alt = "Hình ảnh vui nhộn";
-            document.body.appendChild(emojiImage);
-
-            // Điều chỉnh vị trí hình ảnh ngay phía trên tên
-            emojiImage.style.position = "absolute";
-            emojiImage.style.left = `${rect.left + rect.width / 2 - emojiImage.width / 2}px`;
-            emojiImage.style.top = `${rect.top - emojiImage.height - 10}px`;
-            setTimeout(() => {
-                emojiImage.remove();
-            }, 3300);
-
-            // Đọc tên học sinh
-            const studentName = finalSelectedStudent.textContent;
-            console.log("Đọc tên học sinh:", studentName);
-            speak(studentName);
-
-            // Kết thúc hiệu ứng
-            isEffectRunning = false;
-        }, 7000);
-    }, totalDuration);
-}
-
-function createFireworks(x, y) {
-    for (let i = 0; i < 10; i++) {
-        const firework = document.createElement("div");
-        firework.className = "firework";
-        firework.style.left = `${x}px`;
-        firework.style.top = `${y}px`;
-        firework.style.animationDelay = `${Math.random()}s`;
-        document.body.appendChild(firework);
-        setTimeout(() => {
-            firework.remove();
-        }, 1000);
-    }
-}
-
-function runFunnyDuckAnimation() {
-    if (duckMoving) return;
-    duckMoving = true;
-    
-    const funnyDuck = document.getElementById('funnyDuck');
-    const studentListDiv = document.getElementById('studentList');
-    const students = Array.from(document.querySelectorAll(".student:not(.selected)"));
-
-    if (!funnyDuck || !studentListDiv || students.length === 0) {
-        duckMoving = false;
-        alert("Hãy import danh sách học sinh trước!");
-        return;
-    }
-
-    // Đảm bảo vịt dùng position: fixed
-    funnyDuck.style.display = 'block';
-    funnyDuck.style.position = 'fixed';
-
-    // Lấy vùng danh sách học sinh
-    const listRect = studentListDiv.getBoundingClientRect();
-    const duckWidth = funnyDuck.offsetWidth;
-    const duckHeight = funnyDuck.offsetHeight;
-
-    // Đặt vịt ở vị trí ngẫu nhiên ban đầu
-    function randomPos() {
-        const x = listRect.left + Math.random() * (listRect.width - duckWidth);
-        const y = listRect.top + Math.random() * (listRect.height - duckHeight);
-        return {x, y};
-    }
-
-    // Hàm di chuyển vịt mượt đến vị trí mới
-    function moveDuckSmoothly(toX, toY, duration = 1200, cb) {
-        const fromX = parseFloat(funnyDuck.style.left) || listRect.left;
-        const fromY = parseFloat(funnyDuck.style.top) || listRect.top;
-        const start = performance.now();
-        
-        function animateDuck(now) {
-            const elapsed = now - start;
-            const t = Math.min(1, elapsed / duration);
-            const currentX = fromX + (toX - fromX) * t;
-            const currentY = fromY + (toY - fromY) * t;
-            
-            funnyDuck.style.left = `${currentX}px`;
-            funnyDuck.style.top = `${currentY}px`;
-            
-            if (t < 1) {
-                requestAnimationFrame(animateDuck);
-            } else if (cb) {
-                cb();
-            }
-        }
-        requestAnimationFrame(animateDuck);
-    }
-
-    // Đặt vịt ở vị trí random đầu tiên
-    const first = randomPos();
-    funnyDuck.style.left = `${first.x}px`;
-    funnyDuck.style.top = `${first.y}px`;
-
-    // Số lần di chuyển
-    const totalDuration = 12000;
-    const stepDuration = 1200;
-    const steps = Math.floor(totalDuration / stepDuration);
-    let currentStep = 0;
-
-    function nextMove() {
-        if (currentStep < steps) {
-            const pos = randomPos();
-            moveDuckSmoothly(pos.x, pos.y, stepDuration, () => {
-                currentStep++;
-                nextMove();
-            });
-        } else {
-            // Dừng lại trên một học sinh
-            const chosenIdx = Math.floor(Math.random() * students.length);
-            const chosenStudent = students[chosenIdx];
-            const studentRect = chosenStudent.getBoundingClientRect();
-            const finalX = studentRect.left + studentRect.width/2 - duckWidth/2;
-            const finalY = studentRect.top + chosenStudent.offsetHeight - duckHeight;
-
-            moveDuckSmoothly(finalX, finalY, 1200, () => {
-                // Nháy tên học sinh
-                students.forEach(s => s.classList.remove('selected'));
-                chosenStudent.classList.add('selected');
-                
-                if (document.getElementById('secretMode').checked && chosenStudent.dataset.name) {
-                    chosenStudent.textContent = chosenStudent.dataset.name;
-                }
-
-                // Đọc tên
-                const name = chosenStudent.textContent;
-                speak(name);
-                duckMoving = false;
-            });
-        }
-    }
-    nextMove();
-}
 
 
 
@@ -2316,6 +2360,4 @@ async function getAuthorInfo() {
 }
 
 
-
 console.log('Main.js loaded successfully');
-
