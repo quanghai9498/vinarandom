@@ -1294,7 +1294,7 @@ function spinWheel() {
     wheelCanvas.spinning = true;
 
     // Cải thiện xử lý âm thanh cho website hosting
-    const audio = new Audio("./Sound/spin.mp3");
+    const audio = new Audio("./Sound/Spin.mp3");
     
     // Thêm fallback và error handling
     const playAudio = async () => {
