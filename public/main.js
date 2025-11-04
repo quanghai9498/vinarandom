@@ -4,7 +4,7 @@
 
 // Biến từ file gốc
 let isEffectRunning = false;
-const GEMINI_API_KEY = "AIzaSyAQYySJmfqoky_pWP_Doa9Hxqm3KPcwc1M";
+const GEMINI_API_KEY = "AIzaSyCoEISLWpsv-vbLcTbRV37HjYlAOHKukBI";
 
 // THÊM PHẦN NÀY NGAY SAU DÒNG TRÊN
 // User interaction detector cho audio autoplay
